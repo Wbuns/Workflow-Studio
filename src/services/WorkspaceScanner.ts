@@ -17,8 +17,17 @@ const fallbackAnalysis: WorkspaceAnalysis = {
   hasDocs: true,
   hasWorkflowMetadata: true,
   buildCommand: "npm run build",
+  testCommand: undefined,
+  devCommand: "npm run dev",
   packageManager: "npm",
   documentationPath: "docs",
+  documentationPaths: ["README.md", "docs"],
+  readmePath: "README.md",
+  workflowMetadataPath: ".workflowstudio/project.json",
+  packageScripts: [
+    { name: "dev", command: "vite" },
+    { name: "build", command: "tsc -b && vite build && npm run electron:build" },
+  ],
   capabilities: [
     {
       id: "git",

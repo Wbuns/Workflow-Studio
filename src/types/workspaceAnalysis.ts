@@ -21,6 +21,11 @@ export type WorkspaceHealth = {
   successes: string[];
 };
 
+export type WorkspacePackageScript = {
+  name: string;
+  command: string;
+};
+
 export type WorkspaceAnalysis = {
   projectName: string;
   rootPath: string;
@@ -31,8 +36,14 @@ export type WorkspaceAnalysis = {
   hasDocs: boolean;
   hasWorkflowMetadata: boolean;
   buildCommand?: string;
+  testCommand?: string;
+  devCommand?: string;
   packageManager: WorkspacePackageManager;
   documentationPath?: string;
+  documentationPaths: string[];
+  readmePath?: string;
+  workflowMetadataPath?: string;
+  packageScripts: WorkspacePackageScript[];
   capabilities: WorkspaceCapability[];
   health: WorkspaceHealth;
 };

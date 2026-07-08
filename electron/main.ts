@@ -26,6 +26,11 @@ type WorkspaceCapability = {
   detail: string;
 };
 
+type WorkspacePackageScript = {
+  name: string;
+  command: string;
+};
+
 type WorkspaceAnalysis = {
   projectName: string;
   rootPath: string;
@@ -36,8 +41,14 @@ type WorkspaceAnalysis = {
   hasDocs: boolean;
   hasWorkflowMetadata: boolean;
   buildCommand?: string;
+  testCommand?: string;
+  devCommand?: string;
   packageManager: WorkspacePackageManager;
   documentationPath?: string;
+  documentationPaths: string[];
+  readmePath?: string;
+  workflowMetadataPath?: string;
+  packageScripts: WorkspacePackageScript[];
   capabilities: WorkspaceCapability[];
   health: {
     score: number;
@@ -57,6 +68,10 @@ function exists(relativePath: string) {
   return fs.existsSync(path.join(workspaceRoot, relativePath));
 }
 
+function findFirstExisting(paths: string[]) {
+  return paths.find((candidate) => exists(candidate));
+}
+
 function readJson<T>(relativePath: string): T | null {
   const filePath = path.join(workspaceRoot, relativePath);
 
@@ -73,19 +88,15 @@ function readJson<T>(relativePath: string): T | null {
 }
 
 function detectPackageManager(): WorkspacePackageManager {
-  if (exists("pnpm-lock.yaml")) {
-    return "pnpm";
-  }
-
-  if (exists("yarn.lock")) {
-    return "yarn";
-  }
-
-  if (exists("package-lock.json")) {
-    return "npm";
-  }
-
+  if (exists("pnpm-lock.yaml")) return "pnpm";
+  if (exists("yarn.lock")) return "yarn";
+  if (exists("package-lock.json")) return "npm";
   return exists("package.json") ? "npm" : "unknown";
+}
+
+function scriptCommand(packageManager: WorkspacePackageManager, scriptName: string) {
+  const runner = packageManager === "unknown" ? "npm" : packageManager;
+  return `${runner} run ${scriptName}`;
 }
 
 function detectProjectType(packageJson: PackageJson | null): WorkspaceProjectType {
@@ -98,27 +109,27 @@ function detectProjectType(packageJson: PackageJson | null): WorkspaceProjectTyp
   const hasReact = Boolean(dependencies.react);
   const hasTypeScript = Boolean(dependencies.typescript);
 
-  if (hasElectron && hasReact && hasTypeScript) {
-    return "electron-react-typescript";
-  }
-
-  if (hasElectron) {
-    return "electron";
-  }
-
-  if (hasReact) {
-    return "react";
-  }
-
-  if (packageJson) {
-    return "node";
-  }
-
-  if (exists("pyproject.toml") || exists("requirements.txt")) {
-    return "python";
-  }
+  if (hasElectron && hasReact && hasTypeScript) return "electron-react-typescript";
+  if (hasElectron) return "electron";
+  if (hasReact) return "react";
+  if (packageJson) return "node";
+  if (exists("pyproject.toml") || exists("requirements.txt")) return "python";
 
   return "unknown";
+}
+
+function detectDocumentationPaths(readmePath?: string) {
+  const paths: string[] = [];
+
+  if (readmePath) paths.push(readmePath);
+  if (exists("docs")) paths.push("docs");
+  if (exists("Documentation")) paths.push("Documentation");
+  if (exists("CHANGELOG.md")) paths.push("CHANGELOG.md");
+  if (exists("Roadmap.md")) paths.push("Roadmap.md");
+  if (exists("prompts")) paths.push("prompts");
+  if (exists("templates")) paths.push("templates");
+
+  return paths;
 }
 
 function capability(
@@ -138,15 +149,30 @@ function capability(
 
 function scanWorkspace(): WorkspaceAnalysis {
   const packageJson = readJson<PackageJson>("package.json");
-  const workflowProject = readJson<{ name?: string }>(".workflowstudio/project.json");
+  const workflowMetadataPath = findFirstExisting([
+    ".workflowstudio/project.json",
+    ".workflowstudio/metadata.json",
+  ]);
+  const workflowProject = workflowMetadataPath ? readJson<{ name?: string }>(workflowMetadataPath) : null;
+  const readmePath = findFirstExisting(["README.md", "readme.md", "Readme.md"]);
+  const documentationPaths = detectDocumentationPaths(readmePath);
   const hasGit = exists(".git");
   const hasPackageJson = Boolean(packageJson);
-  const hasReadme = exists("README.md") || exists("readme.md");
-  const hasDocs = exists("docs");
-  const hasWorkflowMetadata = exists(".workflowstudio/project.json");
+  const hasReadme = Boolean(readmePath);
+  const hasDocs = exists("docs") || exists("Documentation");
+  const hasWorkflowMetadata = Boolean(workflowMetadataPath);
   const packageManager = detectPackageManager();
   const projectType = detectProjectType(packageJson);
-  const buildCommand = packageJson?.scripts?.build ? `${packageManager === "unknown" ? "npm" : packageManager} run build` : undefined;
+  const scripts = packageJson?.scripts ?? {};
+  const packageScripts = Object.entries(scripts).map(([name, command]) => ({ name, command }));
+  const buildCommand = scripts.build ? scriptCommand(packageManager, "build") : undefined;
+  const devCommand = scripts.dev ? scriptCommand(packageManager, "dev") : undefined;
+  const testCommand = scripts.test ? scriptCommand(packageManager, "test") : undefined;
+  const hasPackageWorkflow = exists("_packages") && exists("_backup");
+  const hasTemplates = exists("templates");
+  const hasPrompts = exists("prompts");
+  const hasElectronFolder = exists("electron");
+  const hasSourceFolder = exists("src");
   const successes: string[] = [];
   const warnings: string[] = [];
 
@@ -156,19 +182,32 @@ function scanWorkspace(): WorkspaceAnalysis {
   if (hasPackageJson) successes.push("package.json detected.");
   else warnings.push("package.json was not detected.");
 
-  if (hasReadme) successes.push("README.md detected.");
+  if (hasReadme) successes.push(`${readmePath} detected.`);
   else warnings.push("README.md was not detected.");
 
   if (hasDocs) successes.push("Documentation folder detected.");
   else warnings.push("Documentation folder was not detected.");
 
-  if (hasWorkflowMetadata) successes.push("Workflow Studio metadata detected.");
-  else warnings.push(".workflowstudio/project.json was not detected.");
+  if (hasWorkflowMetadata) successes.push(`${workflowMetadataPath} detected.`);
+  else warnings.push("Workflow Studio metadata was not detected.");
 
   if (buildCommand) successes.push(`Build command detected: ${buildCommand}.`);
   else warnings.push("Build command was not detected.");
 
-  const checks = [hasGit, hasPackageJson, hasReadme, hasDocs, hasWorkflowMetadata, Boolean(buildCommand)];
+  if (devCommand) successes.push(`Development command detected: ${devCommand}.`);
+  if (testCommand) successes.push(`Test command detected: ${testCommand}.`);
+  else warnings.push("Test command was not detected yet.");
+
+  const checks = [
+    hasGit,
+    hasPackageJson,
+    hasReadme,
+    hasDocs,
+    hasWorkflowMetadata,
+    Boolean(buildCommand),
+    hasPackageWorkflow,
+    hasSourceFolder,
+  ];
   const score = Math.round((checks.filter(Boolean).length / checks.length) * 100);
 
   return {
@@ -181,15 +220,27 @@ function scanWorkspace(): WorkspaceAnalysis {
     hasDocs,
     hasWorkflowMetadata,
     buildCommand,
+    testCommand,
+    devCommand,
     packageManager,
-    documentationPath: hasDocs ? "docs" : hasReadme ? "README.md" : undefined,
+    documentationPath: documentationPaths[0],
+    documentationPaths,
+    readmePath,
+    workflowMetadataPath,
+    packageScripts,
     capabilities: [
       capability("git", "Git", hasGit, "Repository is available.", "Repository folder was not found."),
+      capability("source", "Source", hasSourceFolder, "Source folder is available.", "src folder was not found."),
       capability("package-json", "package.json", hasPackageJson, "Node project metadata is available.", "package.json was not found."),
+      capability("package-workflow", "Package Workflow", hasPackageWorkflow, "Package and backup folders are available.", "_packages and _backup were not both found."),
       capability("build", "Build", Boolean(buildCommand), "Build command is available.", "Build command was not found."),
+      capability("test", "Tests", Boolean(testCommand), "Test command is available.", "Test command was not found."),
       capability("readme", "README", hasReadme, "README documentation is available.", "README.md was not found."),
       capability("docs", "Docs", hasDocs, "Documentation folder is available.", "docs folder was not found."),
       capability("workflow-metadata", "Workflow Metadata", hasWorkflowMetadata, "Workflow Studio metadata is available.", "Workflow Studio metadata was not found."),
+      capability("electron", "Electron", hasElectronFolder, "Electron desktop shell is available.", "electron folder was not found."),
+      capability("prompts", "Prompts", hasPrompts, "Prompt library folder is available.", "prompts folder was not found."),
+      capability("templates", "Templates", hasTemplates, "Template folder is available.", "templates folder was not found."),
     ],
     health: {
       score,
