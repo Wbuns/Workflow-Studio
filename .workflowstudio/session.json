@@ -1,0 +1,15 @@
+{
+    "schemaVersion": "1.0",
+    "activeProject": "Workflow Studio",
+    "activeMilestone": "Workflow Studio Core",
+    "currentTask": "Development Session Engine",
+    "nextTask": "Documentation Center",
+    "lastBuild": "Passed",
+    "gitStatus": "Clean",
+    "lastCommit": "",
+    "lastSession": "",
+    "notes": [
+        "Workflow Studio Core sprint",
+        "Finish Core then return to Orivex"
+    ]
+}

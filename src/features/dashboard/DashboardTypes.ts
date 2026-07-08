@@ -1,3 +1,5 @@
+import type { DevelopmentSession } from "../../services/SessionService";
+
 export type WorkspaceProjectMetadata = {
   schemaVersion?: string;
   name: string;
@@ -31,4 +33,5 @@ export type DashboardSummary = {
   buildCommand: string;
   testCommand: string;
   nextActions: string[];
+  session: DevelopmentSession;
 };

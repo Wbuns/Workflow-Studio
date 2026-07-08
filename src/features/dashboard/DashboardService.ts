@@ -1,11 +1,12 @@
+import { getCurrentSession } from "../../services/SessionService";
 import type { DashboardSummary, WorkspaceProjectMetadata } from "./DashboardTypes";
 
 const fallbackMetadata: WorkspaceProjectMetadata = {
   schemaVersion: "1.0",
   name: "Workflow Studio",
   description: "A desktop tool for package-based AI-assisted software development.",
-  version: "0.5.0",
-  currentMilestone: "v0.5.0-workspace-feature-pack",
+  version: "1.0.0-core",
+  currentMilestone: "Workflow Studio Core",
   projectType: "electron-react-typescript",
   rootPath: ".",
   gitEnabled: true,
@@ -56,13 +57,14 @@ async function loadProjectMetadata(): Promise<WorkspaceProjectMetadata> {
   return fallbackMetadata;
 }
 
-function toDashboardSummary(metadata: WorkspaceProjectMetadata): DashboardSummary {
+function toDashboardSummary(
+  metadata: WorkspaceProjectMetadata,
+  session: DashboardSummary["session"],
+): DashboardSummary {
   return {
     projectName: metadata.name,
     tagline: metadata.tagline ?? "Build software. Not setup.",
-    description:
-      metadata.description ??
-      "A managed Workflow Studio workspace.",
+    description: metadata.description ?? "A managed Workflow Studio workspace.",
     version: metadata.version,
     currentMilestone: metadata.currentMilestone,
     projectType: metadata.projectType,
@@ -74,16 +76,21 @@ function toDashboardSummary(metadata: WorkspaceProjectMetadata): DashboardSummar
     buildCommand: metadata.buildCommand ?? "npm run build",
     testCommand: metadata.testCommand || "Not configured yet",
     nextActions: [
-      "Open project workspace",
-      "Generate package",
+      session.currentTask,
+      session.nextTask,
       "Review documentation",
       "Check Git status",
       "Generate AI context",
     ],
+    session,
   };
 }
 
 export async function getDashboardSummary(): Promise<DashboardSummary> {
-  const metadata = await loadProjectMetadata();
-  return toDashboardSummary(metadata);
+  const [metadata, session] = await Promise.all([
+    loadProjectMetadata(),
+    getCurrentSession(),
+  ]);
+
+  return toDashboardSummary(metadata, session);
 }

@@ -23,21 +23,36 @@ function InfoCard({ title, value, detail }: InfoCardProps) {
 export function DashboardWidgets({ summary }: DashboardWidgetsProps) {
   return (
     <>
+      <section className="module-panel continue-panel">
+        <h3>Continue Development</h3>
+        <p>
+          Resume <strong>{summary.session.activeProject}</strong> at{" "}
+          <strong>{summary.session.currentTask}</strong>.
+        </p>
+
+        <div className="module-checklist">
+          <span>Milestone: {summary.session.activeMilestone}</span>
+          <span>Next: {summary.session.nextTask}</span>
+          <span>Build: {summary.session.lastBuild}</span>
+          <span>Git: {summary.session.gitStatus}</span>
+        </div>
+      </section>
+
       <section className="panel-grid">
         <InfoCard
-          title="Current Milestone"
-          value={summary.currentMilestone}
-          detail="Active development target for the current workspace."
+          title="Current Task"
+          value={summary.session.currentTask}
+          detail="Active development session focus."
         />
         <InfoCard
-          title="Project Version"
-          value={summary.version}
-          detail={summary.projectType}
+          title="Next Task"
+          value={summary.session.nextTask}
+          detail="Suggested follow-up after the current session."
         />
         <InfoCard
           title="Git"
-          value={summary.gitEnabled ? "Enabled" : "Disabled"}
-          detail="Source control awareness for safer milestone commits."
+          value={summary.session.gitStatus}
+          detail="Session-level source control status."
         />
       </section>
 
@@ -97,10 +112,10 @@ export function DashboardWidgets({ summary }: DashboardWidgetsProps) {
         </article>
 
         <article className="detail-panel next-actions-panel">
-          <h3>Next Actions</h3>
+          <h3>Session Notes</h3>
           <ul>
-            {summary.nextActions.map((action) => (
-              <li key={action}>{action}</li>
+            {summary.session.notes.map((note) => (
+              <li key={note}>{note}</li>
             ))}
           </ul>
         </article>
