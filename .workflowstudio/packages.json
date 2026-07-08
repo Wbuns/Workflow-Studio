@@ -1,0 +1,23 @@
+{
+  "schemaVersion": "1.0",
+  "packages": [
+    {
+      "id": "workflowstudio-v0.3.0-shell-architecture",
+      "version": "0.3.0",
+      "status": "installed",
+      "description": "Refactored shell into feature architecture."
+    },
+    {
+      "id": "workflowstudio-v0.3.1-package-tools-foundation",
+      "version": "0.3.1",
+      "status": "installed",
+      "description": "Added package tooling foundation."
+    },
+    {
+      "id": "workflowstudio-v0.3.2-workspace-metadata-foundation",
+      "version": "0.3.2",
+      "status": "pending-install",
+      "description": "Adds workspace metadata foundation."
+    }
+  ]
+}

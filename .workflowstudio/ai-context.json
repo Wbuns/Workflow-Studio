@@ -1,0 +1,14 @@
+{
+  "schemaVersion": "1.0",
+  "purpose": "Store project context that helps future AI sessions continue development safely.",
+  "activeGoal": "Build Workflow Studio into a package-based AI-assisted development workspace.",
+  "currentFocus": "Workspace metadata foundation and future Project Manager.",
+  "importantRules": [
+    "Small milestones",
+    "Build before commit",
+    "Never commit broken builds",
+    "Prefer complete replacement files over risky partial edits",
+    "Use packages for multi-file milestones"
+  ],
+  "nextLikelyMilestone": "Project Manager foundation"
+}

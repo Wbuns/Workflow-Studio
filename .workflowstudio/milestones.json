@@ -1,0 +1,36 @@
+{
+  "schemaVersion": "1.0",
+  "current": "v0.3.2-workspace-metadata-foundation",
+  "milestones": [
+    {
+      "id": "v0.1-foundation",
+      "name": "Foundation",
+      "status": "completed",
+      "description": "React, TypeScript, Vite, Electron dependencies, Git, folders, and documentation foundation."
+    },
+    {
+      "id": "v0.2-electron-shell",
+      "name": "Electron Shell",
+      "status": "completed",
+      "description": "Desktop window, shell layout, navigation pages, and Electron polish."
+    },
+    {
+      "id": "v0.3.0-shell-architecture",
+      "name": "Shell Architecture",
+      "status": "completed",
+      "description": "Refactor shell into feature-oriented architecture."
+    },
+    {
+      "id": "v0.3.1-package-tools-foundation",
+      "name": "Package Tools Foundation",
+      "status": "completed",
+      "description": "Add reusable package tooling foundation."
+    },
+    {
+      "id": "v0.3.2-workspace-metadata-foundation",
+      "name": "Workspace Metadata Foundation",
+      "status": "active",
+      "description": "Add project metadata files for Workflow Studio workspaces."
+    }
+  ]
+}
