@@ -1,3 +1,4 @@
+import type { WorkspaceCapability } from "../../types/workspaceAnalysis";
 import type { DashboardSummary } from "./DashboardTypes";
 
 type DashboardWidgetsProps = {
@@ -20,25 +21,77 @@ function InfoCard({ title, value, detail }: InfoCardProps) {
   );
 }
 
+function CapabilityBadge({ capability }: { capability: WorkspaceCapability }) {
+  return (
+    <span className={capability.enabled ? "capability-badge enabled" : "capability-badge disabled"}>
+      {capability.enabled ? "✓" : "×"} {capability.label}
+    </span>
+  );
+}
+
 export function DashboardWidgets({ summary }: DashboardWidgetsProps) {
+  const { workspaceAnalysis } = summary;
+
   return (
     <>
       <section className="panel-grid">
         <InfoCard
-          title="Active Workspace"
-          value={summary.projectName}
-          detail={summary.rootPath}
-        />
-        <InfoCard
           title="Current Milestone"
           value={summary.currentMilestone}
-          detail="Loaded from .workflowstudio/project.json."
+          detail="Active development target for the current workspace."
         />
         <InfoCard
-          title="Project Version"
-          value={summary.version}
-          detail={summary.projectType}
+          title="Workspace Health"
+          value={`${workspaceAnalysis.health.score}%`}
+          detail="Calculated from workspace files, metadata, documentation, Git, and build setup."
         />
+        <InfoCard
+          title="Project Type"
+          value={summary.projectType}
+          detail={`Package manager: ${workspaceAnalysis.packageManager}`}
+        />
+      </section>
+
+      <section className="module-panel workspace-health-panel">
+        <div className="section-heading-row">
+          <div>
+            <h3>Workspace Intelligence</h3>
+            <p>
+              Workflow Studio scanned this workspace and detected its core development capabilities.
+            </p>
+          </div>
+          <strong>{workspaceAnalysis.rootPath}</strong>
+        </div>
+
+        <div className="capability-list">
+          {workspaceAnalysis.capabilities.map((capability) => (
+            <CapabilityBadge capability={capability} key={capability.id} />
+          ))}
+        </div>
+
+        <div className="health-columns">
+          <article>
+            <h4>Successes</h4>
+            <ul>
+              {workspaceAnalysis.health.successes.map((success) => (
+                <li key={success}>{success}</li>
+              ))}
+            </ul>
+          </article>
+
+          <article>
+            <h4>Warnings</h4>
+            {workspaceAnalysis.health.warnings.length > 0 ? (
+              <ul>
+                {workspaceAnalysis.health.warnings.map((warning) => (
+                  <li key={warning}>{warning}</li>
+                ))}
+              </ul>
+            ) : (
+              <p>No workspace warnings detected.</p>
+            )}
+          </article>
+        </div>
       </section>
 
       <section className="dashboard-grid">
@@ -64,20 +117,16 @@ export function DashboardWidgets({ summary }: DashboardWidgetsProps) {
           <h3>Workspace</h3>
           <dl>
             <div>
-              <dt>Root</dt>
-              <dd>{summary.rootPath}</dd>
+              <dt>Git</dt>
+              <dd>{workspaceAnalysis.hasGit ? "Detected" : "Not detected"}</dd>
             </div>
             <div>
-              <dt>Packages</dt>
-              <dd>{summary.packageFolder}</dd>
+              <dt>README</dt>
+              <dd>{workspaceAnalysis.hasReadme ? "Detected" : "Missing"}</dd>
             </div>
             <div>
-              <dt>Backups</dt>
-              <dd>{summary.backupFolder}</dd>
-            </div>
-            <div>
-              <dt>Documentation Paths</dt>
-              <dd>{summary.documentationCount}</dd>
+              <dt>Documentation</dt>
+              <dd>{workspaceAnalysis.documentationPath ?? "Not detected"}</dd>
             </div>
           </dl>
         </article>
@@ -96,10 +145,6 @@ export function DashboardWidgets({ summary }: DashboardWidgetsProps) {
             <div>
               <dt>Test</dt>
               <dd>{summary.testCommand}</dd>
-            </div>
-            <div>
-              <dt>Git</dt>
-              <dd>{summary.gitEnabled ? "Enabled" : "Disabled"}</dd>
             </div>
           </dl>
         </article>
