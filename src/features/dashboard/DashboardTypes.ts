@@ -1,22 +1,4 @@
-import type { WorkspaceAnalysis } from "../../types/workspaceAnalysis";
-
-export type WorkspaceProjectMetadata = {
-  schemaVersion?: string;
-  name: string;
-  description?: string;
-  version: string;
-  currentMilestone: string;
-  projectType: string;
-  rootPath?: string;
-  gitEnabled: boolean;
-  devCommand?: string;
-  buildCommand?: string;
-  testCommand?: string;
-  packageFolder: string;
-  backupFolder: string;
-  documentationPaths?: string[];
-  tagline?: string;
-};
+import type { WorkspaceAnalysis, WorkspaceCapability } from "../../types/workspaceAnalysis";
 
 export type DashboardSummary = {
   projectName: string;
@@ -32,6 +14,13 @@ export type DashboardSummary = {
   devCommand: string;
   buildCommand: string;
   testCommand: string;
-  nextActions: string[];
+  packageManager: string;
+  rootPath: string;
+  healthScore: number;
+  healthStatus: "Excellent" | "Good" | "Needs Attention";
+  healthWarnings: string[];
+  healthSuccesses: string[];
+  capabilities: WorkspaceCapability[];
   workspaceAnalysis: WorkspaceAnalysis;
+  nextActions: string[];
 };
