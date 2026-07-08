@@ -1,5 +1,6 @@
 import { getCurrentSession } from "../../services/SessionService";
 import type { DashboardSummary, WorkspaceProjectMetadata } from "./DashboardTypes";
+import type { WorkflowStudioBridge } from "../../types/workflowstudioApi";
 
 const fallbackMetadata: WorkspaceProjectMetadata = {
   schemaVersion: "1.0",
@@ -18,22 +19,6 @@ const fallbackMetadata: WorkspaceProjectMetadata = {
   documentationPaths: ["README.md", "Roadmap.md", "docs"],
   tagline: "Build software. Not setup.",
 };
-
-type WorkflowStudioBridge = {
-  version?: string;
-  platform?: string;
-  workspace?: {
-    getProjectMetadata?: () => Promise<WorkspaceProjectMetadata>;
-    getProject?: () => Promise<WorkspaceProjectMetadata>;
-  };
-  getProjectMetadata?: () => Promise<WorkspaceProjectMetadata>;
-};
-
-declare global {
-  interface Window {
-    workflowStudio?: WorkflowStudioBridge;
-  }
-}
 
 async function loadProjectMetadata(): Promise<WorkspaceProjectMetadata> {
   const bridge = window.workflowStudio;
@@ -55,6 +40,12 @@ async function loadProjectMetadata(): Promise<WorkspaceProjectMetadata> {
   }
 
   return fallbackMetadata;
+}
+
+declare global {
+  interface Window {
+    workflowStudio?: WorkflowStudioBridge;
+  }
 }
 
 function toDashboardSummary(

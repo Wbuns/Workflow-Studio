@@ -1,41 +1,37 @@
+import { ActionList, MetricCard, PageHeader, Panel, StatusChip } from "../../components/UI/StudioComponents";
 import type { NavigationItem } from "../../types/navigation";
 
-type PackagesPageProps = {
-  activePage: NavigationItem;
-};
+type PackagesPageProps = { activePage: NavigationItem };
 
 export function PackagesPage({ activePage }: PackagesPageProps) {
-  return (
-    <>
-      <section className="hero-panel">
-        <p className="eyebrow">{activePage.eyebrow}</p>
-        <h2>{activePage.description}</h2>
-        <p>
-          The package manager connects Workflow Studio's package tooling to the
-          desktop interface. This module will grow into package creation,
-          installation, validation, rollback, and package history.
-        </p>
-      </section>
+    return (
+        <div className="workspace-page">
+            <PageHeader eyebrow={activePage.eyebrow} title="Package Manager" description="Create, install, validate, back up, and roll back milestone packages." actionLabel={activePage.actionLabel} />
 
-      <section className="panel-grid">
-        <article className="info-panel">
-          <h3>Package Tools</h3>
-          <p>Ready</p>
-          <span>PowerShell package tooling exists under tools/package.</span>
-        </article>
+            <section className="metrics-grid">
+                <MetricCard label="Tools" value="Ready" detail="PowerShell package tooling exists." status="good" />
+                <MetricCard label="Package Folder" value="_packages" detail="Local package workspace." />
+                <MetricCard label="Backups" value="Enabled" detail="Installations preserve previous files." status="good" />
+                <MetricCard label="Next" value="History" detail="Package history UI comes later." />
+            </section>
 
-        <article className="info-panel">
-          <h3>Package Folder</h3>
-          <p>_packages</p>
-          <span>Generated and installed packages are stored locally.</span>
-        </article>
-
-        <article className="info-panel">
-          <h3>Next Step</h3>
-          <p>Package UI</p>
-          <span>Create buttons for package creation, validation, and install.</span>
-        </article>
-      </section>
-    </>
-  );
+            <section className="packages-layout">
+                <Panel title="Core Package Workflow">
+                    <div className="module-checklist">
+                        <span>Validate manifest and file entries.</span>
+                        <span>Create backup before replacing files.</span>
+                        <span>Install replacement files.</span>
+                        <span>Run npm run build before commit.</span>
+                    </div>
+                </Panel>
+                <Panel title="Package Actions">
+                    <ActionList actions={["Create package", "Validate package", "Install package", "Open package folder"]} />
+                    <div className="chip-row" style={{ marginTop: 12 }}>
+                        <StatusChip label="Manual install ready" tone="good" />
+                        <StatusChip label="UI actions coming soon" />
+                    </div>
+                </Panel>
+            </section>
+        </div>
+    );
 }

@@ -1,152 +1,37 @@
+import { ActionList, MetricCard, PageHeader, Panel, StatusChip } from "../../components/UI/StudioComponents";
 import type { NavigationItem } from "../../types/navigation";
 
-type AIPageProps = {
-  activePage: NavigationItem;
-};
-
-const contextSources = [
-  {
-    name: "Project Metadata",
-    path: ".workflowstudio/project.json",
-    detail: "Project name, version, milestone, workspace folders, and commands.",
-  },
-  {
-    name: "AI Context",
-    path: ".workflowstudio/ai-context.json",
-    detail: "Current focus, important rules, and next milestone guidance.",
-  },
-  {
-    name: "Roadmap",
-    path: "docs/Roadmap.md",
-    detail: "Planned project direction and major milestones.",
-  },
-  {
-    name: "Design Bible",
-    path: "docs/Design Bible.md",
-    detail: "Long-term product philosophy and decision framework.",
-  },
-  {
-    name: "Development Workflow",
-    path: "docs/Development Workflow.md",
-    detail: "Build, test, commit, and package workflow rules.",
-  },
-];
-
-const sessionSteps = [
-  "Confirm Git status is clean before starting.",
-  "Read workspace metadata and current milestone.",
-  "Review recent package history and documentation changes.",
-  "Generate continuation context for the next AI session.",
-  "Build and test before committing generated changes.",
-];
-
-const continuationPrompt = `We are continuing Workflow Studio development.
-
-Project: Workflow Studio
-Purpose: Package-based AI-assisted development workspace.
-Current focus: AI Context Feature Pack.
-Rules:
-- Small milestones
-- Build before commit
-- Never commit broken builds
-- Prefer complete replacement files for multi-file changes
-- Preserve project knowledge in docs and metadata
-
-Next goal:
-Implement the AI Context system so future sessions can resume projects without manually reconstructing context.`;
+type AIPageProps = { activePage: NavigationItem };
 
 export function AIPage({ activePage }: AIPageProps) {
-  return (
-    <>
-      <section className="hero-panel">
-        <p className="eyebrow">{activePage.eyebrow}</p>
-        <h2>{activePage.description}</h2>
-        <p>
-          This page is the foundation for Workflow Studio&apos;s AI development
-          system. It shows where project context will come from and previews the
-          continuation prompt that future versions will generate automatically.
-        </p>
-      </section>
+    return (
+        <div className="workspace-page">
+            <PageHeader eyebrow={activePage.eyebrow} title="AI Session Generator" description="Build copy-ready continuation prompts from project metadata, documentation, Git, packages, and current tasks." actionLabel="Generate Development Session" />
 
-      <section className="panel-grid">
-        <article className="info-panel">
-          <h3>AI System</h3>
-          <p>Context Builder</p>
-          <span>Collect project metadata, docs, roadmap, and active tasks.</span>
-        </article>
-        <article className="info-panel">
-          <h3>Session Goal</h3>
-          <p>Resume Faster</p>
-          <span>Start new AI conversations without rebuilding project history.</span>
-        </article>
-        <article className="info-panel">
-          <h3>Next Feature</h3>
-          <p>Export Prompt</p>
-          <span>Create copy-ready AI session context from workspace data.</span>
-        </article>
-      </section>
+            <section className="metrics-grid">
+                <MetricCard label="System" value="Context Builder" detail="Project context collection." status="good" />
+                <MetricCard label="Goal" value="Resume Faster" detail="Start new chats without rebuilding history." />
+                <MetricCard label="Sources" value="Planned" detail="Metadata, docs, roadmap, Git, packages." />
+                <MetricCard label="Next" value="Copy Prompt" detail="One-click session export." />
+            </section>
 
-      <section className="project-layout" style={{ marginTop: 18 }}>
-        <article className="module-panel">
-          <h3>Context Sources</h3>
-          <div className="recent-projects-list">
-            {contextSources.map((source) => (
-              <article className="recent-project-card" key={source.path}>
-                <div>
-                  <strong>{source.name}</strong>
-                  <span>{source.detail}</span>
-                </div>
-                <dl>
-                  <div>
-                    <dt>Path</dt>
-                    <dd>{source.path}</dd>
-                  </div>
-                  <div>
-                    <dt>Status</dt>
-                    <dd>Ready</dd>
-                  </div>
-                  <div>
-                    <dt>Use</dt>
-                    <dd>AI Context</dd>
-                  </div>
-                </dl>
-              </article>
-            ))}
-          </div>
-        </article>
+            <section className="ai-layout">
+                <Panel title="Context Sources">
+                    <div className="context-list">
+                        <div className="context-source"><strong>Project Metadata</strong><p>.workflowstudio/project.json — project name, milestone, workspace folders, and commands.</p></div>
+                        <div className="context-source"><strong>AI Context</strong><p>.workflowstudio/ai-context.json — current focus, rules, and next milestone guidance.</p></div>
+                        <div className="context-source"><strong>Documentation</strong><p>Vision, Design Bible, Roadmap, Architecture, Package System, and Development Workflow.</p></div>
+                        <div className="context-source"><strong>Git Status</strong><p>Branch, clean/dirty status, last commit, and working tree summary.</p></div>
+                    </div>
+                </Panel>
 
-        <article className="module-panel">
-          <h3>Development Session Checklist</h3>
-          <div className="action-list">
-            {sessionSteps.map((step) => (
-              <button type="button" key={step}>{step}</button>
-            ))}
-          </div>
-        </article>
-      </section>
-
-      <section className="module-panel">
-        <h3>Continuation Prompt Preview</h3>
-        <p>
-          Future versions will generate this from live project metadata,
-          documentation, Git status, package history, and active milestone data.
-        </p>
-        <pre
-          style={{
-            marginTop: 18,
-            padding: 18,
-            overflow: "auto",
-            whiteSpace: "pre-wrap",
-            border: "1px solid rgba(148, 163, 184, 0.18)",
-            borderRadius: 14,
-            color: "#dbeafe",
-            background: "rgba(2, 6, 23, 0.72)",
-            lineHeight: 1.6,
-          }}
-        >
-          {continuationPrompt}
-        </pre>
-      </section>
-    </>
-  );
+                <Panel title="Development Session Checklist">
+                    <ActionList actions={["Confirm Git status is clean", "Read workspace metadata", "Review recent package history", "Generate continuation context", "Build before committing generated changes"]} />
+                    <div className="chip-row" style={{ marginTop: 12 }}>
+                        <StatusChip label="Session engine next" tone="good" />
+                    </div>
+                </Panel>
+            </section>
+        </div>
+    );
 }

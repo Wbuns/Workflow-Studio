@@ -1,73 +1,53 @@
 import { useEffect, useState } from "react";
-import type { NavigationItem } from "../../types/navigation";
-import type { GitStatus } from "../../types/git";
+import { ActionList, MetricCard, PageHeader, Panel, StatusChip } from "../../components/UI/StudioComponents";
 import { getGitStatus } from "../../services/GitService";
-import "./GitPage.css";
+import type { GitStatus } from "../../types/git";
+import type { NavigationItem } from "../../types/navigation";
 
-type GitPageProps = {
-  activePage: NavigationItem;
-};
+type GitPageProps = { activePage: NavigationItem };
 
 export function GitPage({ activePage }: GitPageProps) {
-  const [gitStatus, setGitStatus] = useState<GitStatus | null>(null);
+    const [gitStatus, setGitStatus] = useState<GitStatus | null>(null);
 
-  useEffect(() => {
-    getGitStatus().then(setGitStatus);
-  }, []);
+    useEffect(() => {
+        let isMounted = true;
+        getGitStatus().then((status) => {
+            if (isMounted) setGitStatus(status);
+        });
+        return () => { isMounted = false; };
+    }, []);
 
-  const workingTreeLabel = gitStatus?.clean ? "Clean" : "Changes Detected";
+    const clean = gitStatus?.clean ?? false;
+    const workingTree = gitStatus ? (clean ? "Clean" : "Changes") : "Loading";
 
-  return (
-    <>
-      <section className="hero-panel">
-        <p className="eyebrow">{activePage.eyebrow}</p>
-        <h2>{activePage.description}</h2>
-        <p>
-          Git Assistant is not meant to replace Git. It gives quick visibility
-          into project status so every milestone stays clean before commit.
-        </p>
-      </section>
+    return (
+        <div className="workspace-page">
+            <PageHeader eyebrow={activePage.eyebrow} title="Git Assistant" description="Review repository status before committing milestone work." actionLabel={activePage.actionLabel} />
 
-      <section className="git-grid">
-        <article className="info-panel">
-          <h3>Branch</h3>
-          <p>{gitStatus?.branch ?? "Loading..."}</p>
-          <span>Current working branch.</span>
-        </article>
+            <section className="metrics-grid">
+                <MetricCard label="Branch" value={gitStatus?.branch ?? "Loading"} detail="Current working branch." />
+                <MetricCard label="Working Tree" value={workingTree} detail={clean ? "No pending changes detected." : "Review pending changes before commit."} status={clean ? "good" : "warning"} />
+                <MetricCard label="Modified" value={gitStatus?.modified ?? 0} detail="Changed files." />
+                <MetricCard label="Untracked" value={gitStatus?.untracked ?? 0} detail="New files not yet tracked." />
+            </section>
 
-        <article className="info-panel">
-          <h3>Working Tree</h3>
-          <p>{gitStatus ? workingTreeLabel : "Loading..."}</p>
-          <span>
-            {gitStatus?.clean
-              ? "No pending changes detected after the last commit."
-              : "Pending changes are waiting to be reviewed."}
-          </span>
-        </article>
+            <section className="git-layout">
+                <Panel title="Repository Summary">
+                    <dl className="definition-grid">
+                        <div><dt>Staged Files</dt><dd>{gitStatus?.staged ?? 0}</dd></div>
+                        <div><dt>Untracked Files</dt><dd>{gitStatus?.untracked ?? 0}</dd></div>
+                        <div className="wide-row"><dt>Last Commit</dt><dd>{gitStatus?.lastCommit ?? "Loading Git status"}</dd></div>
+                    </dl>
+                    <div className="chip-row" style={{ marginTop: 12 }}>
+                        <StatusChip label={clean ? "Clean" : "Dirty"} tone={clean ? "good" : "warning"} />
+                        <StatusChip label="Build before commit" />
+                    </div>
+                </Panel>
 
-        <article className="info-panel">
-          <h3>Last Commit</h3>
-          <p>{gitStatus?.lastCommit || "No commit detected"}</p>
-          <span>Most recent milestone commit.</span>
-        </article>
-      </section>
-
-      <section className="git-layout">
-        <article className="module-panel">
-          <h3>Repository Summary</h3>
-          <div className="module-checklist">
-            <span>Modified files: {gitStatus?.modified ?? 0}</span>
-            <span>Staged files: {gitStatus?.staged ?? 0}</span>
-            <span>Untracked files: {gitStatus?.untracked ?? 0}</span>
-            <span>Status: {gitStatus ? workingTreeLabel : "Loading..."}</span>
-          </div>
-        </article>
-
-        <article className="module-panel">
-          <h3>Suggested Commit</h3>
-          <p>Add Git Assistant foundation</p>
-        </article>
-      </section>
-    </>
-  );
+                <Panel title="Commit Checklist">
+                    <ActionList actions={["Run npm run build", "Review changed files", "Update documentation if needed", "Commit stable milestone"]} />
+                </Panel>
+            </section>
+        </div>
+    );
 }
