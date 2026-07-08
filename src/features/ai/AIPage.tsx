@@ -1,23 +1,21 @@
 import { useEffect, useState } from "react";
-import { generateContinuationPrompt } from "../../services/WorkspaceService";
 import type { NavigationItem } from "../../types/navigation";
-import type { AiContinuationPrompt } from "../../types/workspace";
+import { generateAIContext, type AIContextSummary } from "../../services/AIContextService";
 
 type AIPageProps = {
   activePage: NavigationItem;
 };
 
 export function AIPage({ activePage }: AIPageProps) {
-  const [continuation, setContinuation] = useState<AiContinuationPrompt | null>(null);
-  const [copyStatus, setCopyStatus] = useState("Ready to generate");
+  const [context, setContext] = useState<AIContextSummary | null>(null);
+  const [copyStatus, setCopyStatus] = useState("Ready to copy");
 
   useEffect(() => {
     let isMounted = true;
 
-    generateContinuationPrompt().then((nextPrompt) => {
+    generateAIContext().then((nextContext) => {
       if (isMounted) {
-        setContinuation(nextPrompt);
-        setCopyStatus("Continuation prompt generated from workspace metadata");
+        setContext(nextContext);
       }
     });
 
@@ -26,74 +24,81 @@ export function AIPage({ activePage }: AIPageProps) {
     };
   }, []);
 
-  async function handleCopyPrompt() {
-    if (!continuation) {
-      return;
-    }
+  async function copyContinuationPrompt() {
+    if (!context) return;
 
     try {
-      await navigator.clipboard.writeText(continuation.prompt);
-      setCopyStatus("Copied to clipboard");
+      await navigator.clipboard.writeText(context.continuationPrompt);
+      setCopyStatus("Copied continuation prompt");
     } catch (error) {
       console.warn("Unable to copy continuation prompt.", error);
-      setCopyStatus("Copy failed — select and copy the prompt manually");
+      setCopyStatus("Copy failed — select and copy manually");
     }
   }
 
   return (
     <>
-      <section className="hero-panel project-hero">
+      <section className="hero-panel">
         <p className="eyebrow">{activePage.eyebrow}</p>
         <h2>{activePage.title}</h2>
         <p>
-          Generate paste-ready continuation prompts from the active workspace
-          metadata instead of rebuilding project context manually.
+          <strong>AI Context Engine is active.</strong> Generate a continuation prompt
+          directly from the current workspace scan instead of rebuilding project context manually.
         </p>
       </section>
 
-      <section className="module-panel ai-generator-panel">
-        <div className="panel-title-row">
-          <div>
-            <h3>Continuation Prompt Generator</h3>
-            <p>{copyStatus}</p>
-          </div>
-          <button
-            className="primary-button"
-            type="button"
-            onClick={handleCopyPrompt}
-            disabled={!continuation}
-          >
-            Copy Prompt
-          </button>
-        </div>
+      {context ? (
+        <section className="ai-context-layout">
+          <article className="detail-panel ai-context-summary">
+            <h3>Generated Context</h3>
+            <dl>
+              <div>
+                <dt>Project</dt>
+                <dd>{context.projectName}</dd>
+              </div>
+              <div>
+                <dt>Milestone</dt>
+                <dd>{context.currentMilestone}</dd>
+              </div>
+              <div>
+                <dt>Generated</dt>
+                <dd>{context.generatedAt}</dd>
+              </div>
+            </dl>
+          </article>
 
-        {continuation ? (
-          <>
-            <div className="project-summary ai-summary">
-              <div>
-                <span>Workspace</span>
-                <strong>{continuation.workspaceName}</strong>
-              </div>
-              <div>
-                <span>Milestone</span>
-                <strong>{continuation.milestone}</strong>
-              </div>
-              <div className="wide-row">
-                <span>Generated</span>
-                <strong>{new Date(continuation.generatedAt).toLocaleString()}</strong>
-              </div>
+          <article className="detail-panel ai-context-summary">
+            <h3>Workspace Summary</h3>
+            <p>{context.workspaceSummary}</p>
+          </article>
+
+          <article className="detail-panel ai-context-summary">
+            <h3>Architecture Summary</h3>
+            <p>{context.architectureSummary}</p>
+          </article>
+
+          <article className="detail-panel ai-context-summary">
+            <h3>Recommended Next Step</h3>
+            <p>{context.recommendedNextStep}</p>
+          </article>
+
+          <article className="detail-panel ai-prompt-panel">
+            <div className="ai-prompt-header">
+              <h3>Continue Development Prompt</h3>
+              <button className="primary-button" type="button" onClick={copyContinuationPrompt}>
+                Copy Prompt
+              </button>
             </div>
-            <textarea
-              className="prompt-output"
-              value={continuation.prompt}
-              readOnly
-              aria-label="Generated continuation prompt"
-            />
-          </>
-        ) : (
-          <p>Reading workspace metadata and generating continuation prompt.</p>
-        )}
-      </section>
+            <p className="copy-status">{copyStatus}</p>
+            <textarea readOnly value={context.continuationPrompt} />
+          </article>
+        </section>
+      ) : (
+        <section className="module-panel">
+          <h3>Generating AI Context</h3>
+          <p>Scanning workspace metadata and preparing a continuation prompt.</p>
+        </section>
+      )}
     </>
   );
 }

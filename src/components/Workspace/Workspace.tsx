@@ -14,9 +14,9 @@ export function Workspace({ activePage }: WorkspaceProps) {
       {activePage.id === "dashboard" && <DashboardPage activePage={activePage} />}
       {activePage.id === "projects" && <ProjectsPage activePage={activePage} />}
       {activePage.id === "ai" && <AIPage activePage={activePage} />}
-      {activePage.id !== "dashboard" &&
-        activePage.id !== "projects" &&
-        activePage.id !== "ai" && <PlaceholderPage activePage={activePage} />}
+      {activePage.id !== "dashboard" && activePage.id !== "projects" && activePage.id !== "ai" && (
+        <PlaceholderPage activePage={activePage} />
+      )}
     </main>
   );
 }
