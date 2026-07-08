@@ -3,9 +3,12 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "main": "dist-electron/main.js",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "electron:build": "tsc -p tsconfig.electron.json",
+    "electron:dev": "concurrently -k \"npm run dev\" \"wait-on http://localhost:5173 && npm run electron:build && electron .\"",
+    "build": "tsc -b && vite build && npm run electron:build",
     "lint": "eslint .",
     "preview": "vite preview"
   },
