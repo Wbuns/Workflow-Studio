@@ -31,27 +31,77 @@ function readJson(rootPath, relativePath) {
         return null;
     }
 }
-function detectPackageManager(rootPath) {
-    if (exists(rootPath, "pnpm-lock.yaml"))
+function detectPackageManager(rootPath, applicationRootPath = rootPath) {
+    if (fs.existsSync(path.join(applicationRootPath, "pnpm-lock.yaml")) || exists(rootPath, "pnpm-lock.yaml"))
         return "pnpm";
-    if (exists(rootPath, "yarn.lock"))
+    if (fs.existsSync(path.join(applicationRootPath, "yarn.lock")) || exists(rootPath, "yarn.lock"))
         return "yarn";
-    if (exists(rootPath, "package-lock.json"))
+    if (fs.existsSync(path.join(applicationRootPath, "package-lock.json")) || exists(rootPath, "package-lock.json"))
         return "npm";
-    return exists(rootPath, "package.json") ? "npm" : "unknown";
+    return fs.existsSync(path.join(applicationRootPath, "package.json")) || exists(rootPath, "package.json") ? "npm" : "unknown";
+}
+function discoverPackageJson(workspaceRoot) {
+    const rootPackageJson = readJson(workspaceRoot, "package.json");
+    if (rootPackageJson) {
+        return {
+            packageJson: rootPackageJson,
+            packageJsonPath: "package.json",
+            applicationRootPath: workspaceRoot,
+            applicationRelativePath: ".",
+        };
+    }
+    const preferredNestedPackages = [
+        "apps/desktop-studio/package.json",
+        "apps/workflow-studio/package.json",
+        "apps/web/package.json",
+    ];
+    for (const relativePath of preferredNestedPackages) {
+        const packageJson = readJson(workspaceRoot, relativePath);
+        if (packageJson) {
+            return {
+                packageJson,
+                packageJsonPath: relativePath,
+                applicationRootPath: path.join(workspaceRoot, path.dirname(relativePath)),
+                applicationRelativePath: path.dirname(relativePath),
+            };
+        }
+    }
+    const appsPath = path.join(workspaceRoot, "apps");
+    if (fs.existsSync(appsPath) && fs.statSync(appsPath).isDirectory()) {
+        const appFolders = fs
+            .readdirSync(appsPath, { withFileTypes: true })
+            .filter((entry) => entry.isDirectory())
+            .sort((a, b) => a.name.localeCompare(b.name));
+        for (const appFolder of appFolders) {
+            const relativePath = path.join("apps", appFolder.name, "package.json");
+            const packageJson = readJson(workspaceRoot, relativePath);
+            if (packageJson) {
+                return {
+                    packageJson,
+                    packageJsonPath: relativePath,
+                    applicationRootPath: path.join(workspaceRoot, "apps", appFolder.name),
+                    applicationRelativePath: path.join("apps", appFolder.name),
+                };
+            }
+        }
+    }
+    return {
+        packageJson: null,
+        applicationRootPath: workspaceRoot,
+    };
 }
 function scriptCommand(packageManager, scriptName) {
     const runner = packageManager === "unknown" ? "npm" : packageManager;
     return `${runner} run ${scriptName}`;
 }
-function detectProjectType(rootPath, packageJson) {
+function detectProjectType(rootPath, packageJson, applicationRootPath = rootPath) {
     const dependencies = {
         ...packageJson?.dependencies,
         ...packageJson?.devDependencies,
     };
-    const hasElectron = Boolean(dependencies.electron) || exists(rootPath, "electron");
+    const hasElectron = Boolean(dependencies.electron) || exists(rootPath, "electron") || fs.existsSync(path.join(applicationRootPath, "electron"));
     const hasReact = Boolean(dependencies.react);
-    const hasTypeScript = Boolean(dependencies.typescript) || exists(rootPath, "tsconfig.json");
+    const hasTypeScript = Boolean(dependencies.typescript) || exists(rootPath, "tsconfig.json") || fs.existsSync(path.join(applicationRootPath, "tsconfig.json"));
     if (hasElectron && hasReact && hasTypeScript)
         return "electron-react-typescript";
     if (hasElectron)
@@ -60,7 +110,7 @@ function detectProjectType(rootPath, packageJson) {
         return "react";
     if (packageJson)
         return "node";
-    if (exists(rootPath, "pyproject.toml") || exists(rootPath, "requirements.txt"))
+    if (exists(rootPath, "pyproject.toml") || exists(rootPath, "requirements.txt") || fs.existsSync(path.join(applicationRootPath, "pyproject.toml")) || fs.existsSync(path.join(applicationRootPath, "requirements.txt")))
         return "python";
     return "unknown";
 }
@@ -92,7 +142,8 @@ function capability(id, label, enabled, enabledDetail, disabledDetail) {
 }
 function scanWorkspace(rootPathInput) {
     const workspaceRoot = normalizeRoot(rootPathInput);
-    const packageJson = readJson(workspaceRoot, "package.json");
+    const packageDiscovery = discoverPackageJson(workspaceRoot);
+    const { packageJson, packageJsonPath, applicationRootPath, applicationRelativePath } = packageDiscovery;
     const workflowMetadataPath = findFirstExisting(workspaceRoot, [
         ".workflowstudio/project.json",
         ".workflowstudio/metadata.json",
@@ -107,8 +158,8 @@ function scanWorkspace(rootPathInput) {
     const hasReadme = Boolean(readmePath);
     const hasDocs = exists(workspaceRoot, "docs") || exists(workspaceRoot, "Documentation");
     const hasWorkflowMetadata = Boolean(workflowMetadataPath);
-    const packageManager = detectPackageManager(workspaceRoot);
-    const projectType = detectProjectType(workspaceRoot, packageJson);
+    const packageManager = detectPackageManager(workspaceRoot, applicationRootPath);
+    const projectType = detectProjectType(workspaceRoot, packageJson, applicationRootPath);
     const scripts = packageJson?.scripts ?? {};
     const packageScripts = Object.entries(scripts).map(([name, command]) => ({ name, command }));
     const buildCommand = scripts.build ? scriptCommand(packageManager, "build") : undefined;
@@ -117,8 +168,8 @@ function scanWorkspace(rootPathInput) {
     const hasPackageWorkflow = exists(workspaceRoot, "_packages") && exists(workspaceRoot, "_backup");
     const hasTemplates = exists(workspaceRoot, "templates");
     const hasPrompts = exists(workspaceRoot, "prompts");
-    const hasElectronFolder = exists(workspaceRoot, "electron");
-    const hasSourceFolder = exists(workspaceRoot, "src");
+    const hasElectronFolder = exists(workspaceRoot, "electron") || fs.existsSync(path.join(applicationRootPath, "electron"));
+    const hasSourceFolder = exists(workspaceRoot, "src") || fs.existsSync(path.join(applicationRootPath, "src"));
     const successes = [];
     const warnings = [];
     if (hasGit)
@@ -126,9 +177,11 @@ function scanWorkspace(rootPathInput) {
     else
         warnings.push("Git repository was not detected.");
     if (hasPackageJson)
-        successes.push("package.json detected.");
+        successes.push(`${packageJsonPath ?? "package.json"} detected.`);
     else
         warnings.push("package.json was not detected.");
+    if (applicationRelativePath && applicationRelativePath !== ".")
+        successes.push(`Application root detected: ${applicationRelativePath}.`);
     if (hasReadme)
         successes.push(`${readmePath} detected.`);
     else
@@ -179,6 +232,9 @@ function scanWorkspace(rootPathInput) {
         documentationPaths,
         readmePath,
         workflowMetadataPath,
+        packageJsonPath,
+        applicationRootPath,
+        currentMilestone: workflowProject?.currentMilestone,
         packageScripts,
         capabilities: [
             capability("git", "Git", hasGit, "Repository is available.", "Repository folder was not found."),
@@ -247,19 +303,34 @@ function getGitStatus(rootPathInput) {
         };
     }
 }
-function collectMarkdownFiles(rootPath, relativeFolder, kind) {
+function collectMarkdownFiles(rootPath, relativeFolder, kind, maxDepth = 4) {
     const folderPath = path.join(rootPath, relativeFolder);
     if (!fs.existsSync(folderPath) || !fs.statSync(folderPath).isDirectory())
         return [];
-    return fs
-        .readdirSync(folderPath)
-        .filter((fileName) => fileName.toLowerCase().endsWith(".md"))
-        .sort((a, b) => a.localeCompare(b))
-        .map((fileName) => ({
-        title: fileName.replace(/\.md$/i, ""),
-        path: path.join(relativeFolder, fileName),
-        kind,
-    }));
+    const results = [];
+    function walk(currentRelativeFolder, depth) {
+        if (depth > maxDepth)
+            return;
+        const currentFolder = path.join(rootPath, currentRelativeFolder);
+        for (const entry of fs.readdirSync(currentFolder, { withFileTypes: true })) {
+            if (entry.name.startsWith("."))
+                continue;
+            const entryRelativePath = path.join(currentRelativeFolder, entry.name);
+            if (entry.isDirectory()) {
+                walk(entryRelativePath, depth + 1);
+                continue;
+            }
+            if (entry.name.toLowerCase().endsWith(".md")) {
+                results.push({
+                    title: entry.name.replace(/\.md$/i, ""),
+                    path: entryRelativePath,
+                    kind,
+                });
+            }
+        }
+    }
+    walk(relativeFolder, 0);
+    return results.sort((a, b) => a.path.localeCompare(b.path));
 }
 function listDirectoryEntries(rootPath, relativeFolder) {
     const folderPath = path.join(rootPath, relativeFolder);
@@ -344,6 +415,11 @@ function listDocumentation(rootPathInput) {
     const readmePath = findFirstExisting(rootPath, ["README.md", "readme.md", "Readme.md"]);
     if (readmePath) {
         entries.push({ title: "README", path: readmePath, kind: "readme" });
+    }
+    for (const entry of fs.readdirSync(rootPath, { withFileTypes: true })) {
+        if (entry.isFile() && entry.name.toLowerCase().endsWith(".md") && entry.name !== readmePath) {
+            entries.push({ title: entry.name.replace(/\.md$/i, ""), path: entry.name, kind: "docs" });
+        }
     }
     entries.push(...collectMarkdownFiles(rootPath, "docs", "docs"));
     entries.push(...collectMarkdownFiles(rootPath, ".workflowstudio", "metadata"));

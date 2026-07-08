@@ -1,3 +1,4 @@
+import { useState } from "react";
 import type { NavigationItem } from "../../types/navigation";
 import type { WorkspaceRecord } from "../../types/workspaceRegistry";
 
@@ -7,6 +8,12 @@ type ProjectsPageProps = {
 };
 
 export function ProjectsPage({ activePage, activeWorkspace }: ProjectsPageProps) {
+  const [actionStatus, setActionStatus] = useState("Workspace actions are guidance-only for now. Use the related page for the full workflow.");
+
+  function handleAction(action: string) {
+    setActionStatus(action);
+  }
+
   return (
     <>
       <section className="hero-panel project-hero">
@@ -49,12 +56,23 @@ export function ProjectsPage({ activePage, activeWorkspace }: ProjectsPageProps)
         <article className="module-panel project-actions-panel">
           <h3>Workspace Actions</h3>
           <div className="action-list">
-            <button type="button">Validate project metadata</button>
-            <button type="button">Generate AI continuation prompt</button>
-            <button type="button">Review package folder</button>
-            <button type="button">Check build command</button>
-            <button type="button">Prepare next milestone</button>
+            <button type="button" onClick={() => handleAction("Metadata validation is represented by the Dashboard health scan and Projects summary.")}>
+              Validate project metadata
+            </button>
+            <button type="button" onClick={() => handleAction("Open the AI page and use Copy Prompt to generate the current continuation prompt.")}>
+              Generate AI continuation prompt
+            </button>
+            <button type="button" onClick={() => handleAction("Open the Packages page to review _packages, _backup, and package history.")}>
+              Review package folder
+            </button>
+            <button type="button" onClick={() => handleAction("The Dashboard scans package.json scripts and displays detected dev/build/test commands.")}>
+              Check build command
+            </button>
+            <button type="button" onClick={() => handleAction("Milestone preparation will become a dedicated v1.3 workflow. For now, use the AI page continuation prompt.")}>
+              Prepare next milestone
+            </button>
           </div>
+          <p className="action-status">{actionStatus}</p>
         </article>
       </section>
 

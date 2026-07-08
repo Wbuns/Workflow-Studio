@@ -2,51 +2,31 @@
 
 All notable changes to Workflow Studio are documented here.
 
-# v1.2.8 — Final Daily-Use Cleanup
+## v1.2.9 — Orivex Workspace Detection Polish
 
 Completed
 
-## Added
+### Added
 
-- Packages page now lists local package folders, backup folders, and package history records.
-- Templates page now lists reusable files from `templates/` and `prompts/`.
-- Documentation page now includes safe Open actions for detected Markdown files.
-- Shared workspace open-path bridge for safe Electron file opening inside the active workspace.
+- Nested package.json discovery for app folders such as apps/desktop-studio.
+- Nested application root detection for monorepo-style workspaces.
+- Build, dev, package manager, source, Electron, React, and TypeScript detection from nested apps.
+- Current milestone forwarding from .workflowstudio/project.json into generated AI continuation prompts.
+- Recursive Markdown discovery for documentation folders.
+- Project action button feedback so actions no longer feel inactive.
 
-## Improved
+### Improved
 
-- Remaining placeholder-feeling pages are now connected to real workspace data.
-- Workflow Studio is ready for daily use while returning to Orivex development.
+- Orivex workspace detection now understands that the project root and app build root can be different folders.
+- AI continuation prompts now use the selected workspace milestone instead of always reporting Workflow Studio v1.2.
+- Documentation discovery now surfaces root Markdown files and nested documentation files.
 
-# v1.2.7 — Usability Reality Check
-
-Completed
-
-## Added
-
-- Git page displays real repository status.
-- Projects page can open and switch workspaces.
-- Documentation page lists detected Markdown files.
-- Settings page records future UI scale/display settings direction.
-
-# v1.2 — Workspace Intelligence
+## v1.2 — Workspace Intelligence
 
 Completed
 
-## Added
-
-- Workspace Scanner foundation.
-- Workspace intelligence detection.
-- Dashboard workspace health.
-- AI Context Engine.
-- Multi-workspace foundation.
-
-# v1.0 — Core
-
-Completed
-
-- Electron application.
-- Responsive desktop UI.
-- Dashboard, Projects, Packages, Documentation, AI, Git pages.
-- Package system.
-- Workspace metadata system.
+- Workspace scanner foundation
+- Workspace health dashboard
+- AI context engine
+- Multi-workspace foundation
+- Git, documentation, package, and template discovery polish

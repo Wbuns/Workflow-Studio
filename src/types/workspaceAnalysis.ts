@@ -43,6 +43,9 @@ export type WorkspaceAnalysis = {
   documentationPaths: string[];
   readmePath?: string;
   workflowMetadataPath?: string;
+  packageJsonPath?: string;
+  applicationRootPath?: string;
+  currentMilestone?: string;
   packageScripts: WorkspacePackageScript[];
   capabilities: WorkspaceCapability[];
   health: WorkspaceHealth;

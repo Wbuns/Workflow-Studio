@@ -24,6 +24,9 @@ const fallbackAnalysis: WorkspaceAnalysis = {
   documentationPaths: ["README.md", "docs"],
   readmePath: "README.md",
   workflowMetadataPath: ".workflowstudio/project.json",
+  packageJsonPath: "package.json",
+  applicationRootPath: ".",
+  currentMilestone: "v1.2 — Workspace Intelligence and AI Context Engine",
   packageScripts: [
     { name: "dev", command: "vite" },
     { name: "build", command: "tsc -b && vite build && npm run electron:build" },

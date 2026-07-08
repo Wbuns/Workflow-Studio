@@ -51,7 +51,9 @@ function recommendNextStep(analysis: WorkspaceAnalysis): string {
     return `Resolve the highest-value workspace warning: ${analysis.health.warnings[0]}`;
   }
 
-  return "Continue v1.2 by expanding AI context generation and preparing the multi-workspace foundation.";
+  return analysis.projectName === "Workflow Studio"
+    ? "Continue Workflow Studio by expanding daily-use automation."
+    : "Continue the active project roadmap using Workflow Studio as the context and package-management command center.";
 }
 
 function buildContinuationPrompt(analysis: WorkspaceAnalysis, generatedAt: string): string {
@@ -82,7 +84,7 @@ Warnings:
 ${formatList(analysis.health.warnings, "No warnings detected.")}
 
 Current milestone:
-v1.2 — Workspace Intelligence and AI Context Engine
+${analysis.currentMilestone ?? "Not specified in workspace metadata"}
 
 Architecture rules:
 - Use feature-based React architecture.
@@ -112,7 +114,7 @@ export async function generateAIContext(rootPath?: string): Promise<AIContextSum
 
   return {
     projectName: analysis.projectName,
-    currentMilestone: "v1.2 — Workspace Intelligence and AI Context Engine",
+    currentMilestone: analysis.currentMilestone ?? "Not specified in workspace metadata",
     architectureSummary: summarizeArchitecture(analysis),
     workspaceSummary: summarizeWorkspace(analysis),
     recommendedNextStep: recommendNextStep(analysis),

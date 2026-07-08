@@ -49,6 +49,9 @@ type WorkspaceAnalysis = {
   documentationPaths: string[];
   readmePath?: string;
   workflowMetadataPath?: string;
+  packageJsonPath?: string;
+  applicationRootPath?: string;
+  currentMilestone?: string;
   packageScripts: WorkspacePackageScript[];
   capabilities: WorkspaceCapability[];
   health: {
@@ -98,6 +101,13 @@ type PackageJson = {
   devDependencies?: Record<string, string>;
 };
 
+type PackageJsonDiscovery = {
+  packageJson: PackageJson | null;
+  packageJsonPath?: string;
+  applicationRootPath: string;
+  applicationRelativePath?: string;
+};
+
 function normalizeRoot(rootPath?: string) {
   if (!rootPath || rootPath.trim() === ".") return defaultWorkspaceRoot;
   return path.resolve(rootPath);
@@ -126,11 +136,71 @@ function readJson<T>(rootPath: string, relativePath: string): T | null {
   }
 }
 
-function detectPackageManager(rootPath: string): WorkspacePackageManager {
-  if (exists(rootPath, "pnpm-lock.yaml")) return "pnpm";
-  if (exists(rootPath, "yarn.lock")) return "yarn";
-  if (exists(rootPath, "package-lock.json")) return "npm";
-  return exists(rootPath, "package.json") ? "npm" : "unknown";
+function detectPackageManager(rootPath: string, applicationRootPath = rootPath): WorkspacePackageManager {
+  if (fs.existsSync(path.join(applicationRootPath, "pnpm-lock.yaml")) || exists(rootPath, "pnpm-lock.yaml")) return "pnpm";
+  if (fs.existsSync(path.join(applicationRootPath, "yarn.lock")) || exists(rootPath, "yarn.lock")) return "yarn";
+  if (fs.existsSync(path.join(applicationRootPath, "package-lock.json")) || exists(rootPath, "package-lock.json")) return "npm";
+  return fs.existsSync(path.join(applicationRootPath, "package.json")) || exists(rootPath, "package.json") ? "npm" : "unknown";
+}
+
+function discoverPackageJson(workspaceRoot: string): PackageJsonDiscovery {
+  const rootPackageJson = readJson<PackageJson>(workspaceRoot, "package.json");
+
+  if (rootPackageJson) {
+    return {
+      packageJson: rootPackageJson,
+      packageJsonPath: "package.json",
+      applicationRootPath: workspaceRoot,
+      applicationRelativePath: ".",
+    };
+  }
+
+  const preferredNestedPackages = [
+    "apps/desktop-studio/package.json",
+    "apps/workflow-studio/package.json",
+    "apps/web/package.json",
+  ];
+
+  for (const relativePath of preferredNestedPackages) {
+    const packageJson = readJson<PackageJson>(workspaceRoot, relativePath);
+
+    if (packageJson) {
+      return {
+        packageJson,
+        packageJsonPath: relativePath,
+        applicationRootPath: path.join(workspaceRoot, path.dirname(relativePath)),
+        applicationRelativePath: path.dirname(relativePath),
+      };
+    }
+  }
+
+  const appsPath = path.join(workspaceRoot, "apps");
+
+  if (fs.existsSync(appsPath) && fs.statSync(appsPath).isDirectory()) {
+    const appFolders = fs
+      .readdirSync(appsPath, { withFileTypes: true })
+      .filter((entry) => entry.isDirectory())
+      .sort((a, b) => a.name.localeCompare(b.name));
+
+    for (const appFolder of appFolders) {
+      const relativePath = path.join("apps", appFolder.name, "package.json");
+      const packageJson = readJson<PackageJson>(workspaceRoot, relativePath);
+
+      if (packageJson) {
+        return {
+          packageJson,
+          packageJsonPath: relativePath,
+          applicationRootPath: path.join(workspaceRoot, "apps", appFolder.name),
+          applicationRelativePath: path.join("apps", appFolder.name),
+        };
+      }
+    }
+  }
+
+  return {
+    packageJson: null,
+    applicationRootPath: workspaceRoot,
+  };
 }
 
 function scriptCommand(packageManager: WorkspacePackageManager, scriptName: string) {
@@ -138,21 +208,21 @@ function scriptCommand(packageManager: WorkspacePackageManager, scriptName: stri
   return `${runner} run ${scriptName}`;
 }
 
-function detectProjectType(rootPath: string, packageJson: PackageJson | null): WorkspaceProjectType {
+function detectProjectType(rootPath: string, packageJson: PackageJson | null, applicationRootPath = rootPath): WorkspaceProjectType {
   const dependencies = {
     ...packageJson?.dependencies,
     ...packageJson?.devDependencies,
   };
 
-  const hasElectron = Boolean(dependencies.electron) || exists(rootPath, "electron");
+  const hasElectron = Boolean(dependencies.electron) || exists(rootPath, "electron") || fs.existsSync(path.join(applicationRootPath, "electron"));
   const hasReact = Boolean(dependencies.react);
-  const hasTypeScript = Boolean(dependencies.typescript) || exists(rootPath, "tsconfig.json");
+  const hasTypeScript = Boolean(dependencies.typescript) || exists(rootPath, "tsconfig.json") || fs.existsSync(path.join(applicationRootPath, "tsconfig.json"));
 
   if (hasElectron && hasReact && hasTypeScript) return "electron-react-typescript";
   if (hasElectron) return "electron";
   if (hasReact) return "react";
   if (packageJson) return "node";
-  if (exists(rootPath, "pyproject.toml") || exists(rootPath, "requirements.txt")) return "python";
+  if (exists(rootPath, "pyproject.toml") || exists(rootPath, "requirements.txt") || fs.existsSync(path.join(applicationRootPath, "pyproject.toml")) || fs.existsSync(path.join(applicationRootPath, "requirements.txt"))) return "python";
 
   return "unknown";
 }
@@ -188,7 +258,8 @@ function capability(
 
 function scanWorkspace(rootPathInput?: string): WorkspaceAnalysis {
   const workspaceRoot = normalizeRoot(rootPathInput);
-  const packageJson = readJson<PackageJson>(workspaceRoot, "package.json");
+  const packageDiscovery = discoverPackageJson(workspaceRoot);
+  const { packageJson, packageJsonPath, applicationRootPath, applicationRelativePath } = packageDiscovery;
   const workflowMetadataPath = findFirstExisting(workspaceRoot, [
     ".workflowstudio/project.json",
     ".workflowstudio/metadata.json",
@@ -206,8 +277,8 @@ function scanWorkspace(rootPathInput?: string): WorkspaceAnalysis {
   const hasReadme = Boolean(readmePath);
   const hasDocs = exists(workspaceRoot, "docs") || exists(workspaceRoot, "Documentation");
   const hasWorkflowMetadata = Boolean(workflowMetadataPath);
-  const packageManager = detectPackageManager(workspaceRoot);
-  const projectType = detectProjectType(workspaceRoot, packageJson);
+  const packageManager = detectPackageManager(workspaceRoot, applicationRootPath);
+  const projectType = detectProjectType(workspaceRoot, packageJson, applicationRootPath);
   const scripts = packageJson?.scripts ?? {};
   const packageScripts = Object.entries(scripts).map(([name, command]) => ({ name, command }));
   const buildCommand = scripts.build ? scriptCommand(packageManager, "build") : undefined;
@@ -216,16 +287,18 @@ function scanWorkspace(rootPathInput?: string): WorkspaceAnalysis {
   const hasPackageWorkflow = exists(workspaceRoot, "_packages") && exists(workspaceRoot, "_backup");
   const hasTemplates = exists(workspaceRoot, "templates");
   const hasPrompts = exists(workspaceRoot, "prompts");
-  const hasElectronFolder = exists(workspaceRoot, "electron");
-  const hasSourceFolder = exists(workspaceRoot, "src");
+  const hasElectronFolder = exists(workspaceRoot, "electron") || fs.existsSync(path.join(applicationRootPath, "electron"));
+  const hasSourceFolder = exists(workspaceRoot, "src") || fs.existsSync(path.join(applicationRootPath, "src"));
   const successes: string[] = [];
   const warnings: string[] = [];
 
   if (hasGit) successes.push("Git repository detected.");
   else warnings.push("Git repository was not detected.");
 
-  if (hasPackageJson) successes.push("package.json detected.");
+  if (hasPackageJson) successes.push(`${packageJsonPath ?? "package.json"} detected.`);
   else warnings.push("package.json was not detected.");
+
+  if (applicationRelativePath && applicationRelativePath !== ".") successes.push(`Application root detected: ${applicationRelativePath}.`);
 
   if (hasReadme) successes.push(`${readmePath} detected.`);
   else warnings.push("README.md was not detected.");
@@ -272,6 +345,9 @@ function scanWorkspace(rootPathInput?: string): WorkspaceAnalysis {
     documentationPaths,
     readmePath,
     workflowMetadataPath,
+    packageJsonPath,
+    applicationRootPath,
+    currentMilestone: workflowProject?.currentMilestone,
     packageScripts,
     capabilities: [
       capability("git", "Git", hasGit, "Repository is available.", "Repository folder was not found."),
@@ -346,19 +422,46 @@ function getGitStatus(rootPathInput?: string): GitStatus {
   }
 }
 
-function collectMarkdownFiles(rootPath: string, relativeFolder: string, kind: DocumentationEntry["kind"]) {
+function collectMarkdownFiles(
+  rootPath: string,
+  relativeFolder: string,
+  kind: DocumentationEntry["kind"],
+  maxDepth = 4,
+) {
   const folderPath = path.join(rootPath, relativeFolder);
+
   if (!fs.existsSync(folderPath) || !fs.statSync(folderPath).isDirectory()) return [];
 
-  return fs
-    .readdirSync(folderPath)
-    .filter((fileName) => fileName.toLowerCase().endsWith(".md"))
-    .sort((a, b) => a.localeCompare(b))
-    .map((fileName) => ({
-      title: fileName.replace(/\.md$/i, ""),
-      path: path.join(relativeFolder, fileName),
-      kind,
-    }));
+  const results: DocumentationEntry[] = [];
+
+  function walk(currentRelativeFolder: string, depth: number) {
+    if (depth > maxDepth) return;
+
+    const currentFolder = path.join(rootPath, currentRelativeFolder);
+
+    for (const entry of fs.readdirSync(currentFolder, { withFileTypes: true })) {
+      if (entry.name.startsWith(".")) continue;
+
+      const entryRelativePath = path.join(currentRelativeFolder, entry.name);
+
+      if (entry.isDirectory()) {
+        walk(entryRelativePath, depth + 1);
+        continue;
+      }
+
+      if (entry.name.toLowerCase().endsWith(".md")) {
+        results.push({
+          title: entry.name.replace(/\.md$/i, ""),
+          path: entryRelativePath,
+          kind,
+        });
+      }
+    }
+  }
+
+  walk(relativeFolder, 0);
+
+  return results.sort((a, b) => a.path.localeCompare(b.path));
 }
 
 
@@ -470,6 +573,12 @@ function listDocumentation(rootPathInput?: string): DocumentationEntry[] {
 
   if (readmePath) {
     entries.push({ title: "README", path: readmePath, kind: "readme" });
+  }
+
+  for (const entry of fs.readdirSync(rootPath, { withFileTypes: true })) {
+    if (entry.isFile() && entry.name.toLowerCase().endsWith(".md") && entry.name !== readmePath) {
+      entries.push({ title: entry.name.replace(/\.md$/i, ""), path: entry.name, kind: "docs" });
+    }
   }
 
   entries.push(...collectMarkdownFiles(rootPath, "docs", "docs"));
