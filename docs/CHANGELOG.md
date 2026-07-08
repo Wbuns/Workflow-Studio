@@ -6,18 +6,94 @@ This project follows a milestone-based development workflow.
 
 ---
 
-# v0.1 — Foundation
+# v1.2 — Workspace Intelligence
 
-Completed
+Completed July 2026.
 
 ## Added
 
-- React project initialized
-- TypeScript configured
-- Vite configured
-- Git repository initialized
-- Electron dependencies installed
-- Initial folder structure created
+- Workspace Scanner foundation.
+- Workspace analysis model for shared workspace discovery.
+- Workspace intelligence detection for project structure and capabilities.
+- Detection for Git repository presence.
+- Detection for `package.json`.
+- Detection for README files.
+- Detection for documentation folders.
+- Detection for Workflow Studio metadata.
+- Package manager detection.
+- Build command detection.
+- Project type detection.
+- Dashboard workspace health display.
+- Workspace capability indicators.
+- AI Context Engine foundation.
+- Generated continuation context foundation.
+- Multi-workspace foundation.
+- Workspace selector structure.
+- Recent workspace registry structure.
+
+## Improved
+
+- Dashboard now uses workspace intelligence instead of static placeholder information.
+- AI page now has the foundation for generated development context.
+- Workspace data is moving toward a shared source of truth.
+- Project metadata is better aligned with the current application state.
+
+## Fixed
+
+- Regenerated the v1.2.5 package after the package validator correctly rejected an invalid manifest.
+- Confirmed package validation catches missing manifest fields before installation.
+
+---
+
+# v1.1 — Real Workspace Integration
+
+Completed.
+
+## Added
+
+- Real managed workspace loading through `.workflowstudio/project.json`.
+- Shared Electron bridge architecture.
+- Shared Git type architecture.
+- Git status normalization improvements.
+
+## Improved
+
+- Workflow Studio now reads real workspace metadata instead of relying only on hardcoded UI data.
+- Git page and project metadata are better aligned with the active workspace.
+
+---
+
+# v1.0 — Core Application
+
+Completed.
+
+## Added
+
+- Electron application shell.
+- Responsive desktop UI.
+- Dashboard page.
+- Projects page.
+- Packages page.
+- Documentation page.
+- AI page.
+- Git page.
+- Package system foundation.
+- Workspace metadata foundation.
+
+---
+
+# v0.1 — Foundation
+
+Completed.
+
+## Added
+
+- React project initialized.
+- TypeScript configured.
+- Vite configured.
+- Git repository initialized.
+- Electron dependencies installed.
+- Initial folder structure created.
 
 ### Project folders
 
@@ -48,78 +124,25 @@ Created:
 
 ---
 
-# v0.2 — Electron Shell
+# Upcoming
 
-Planned
+## v1.3 — Workspace Polish and Persistence
 
-## Goals
+Planned.
 
-- Electron window
-- Application shell
-- Navigation
-- Dashboard
-- Sidebar
-- Status bar
+Potential goals:
 
----
+- Refine workspace selector behavior.
+- Improve recent workspace persistence.
+- Improve missing-workspace error states.
+- Add package history UI.
+- Improve AI prompt export workflow.
+- Improve documentation freshness indicators.
 
-# v0.3 — Package Manager
+## v1.4 — Package History and Rollback UI
 
-Planned
+Planned.
 
----
+## v1.5 — Orivex Integration Support
 
-# v0.4 — AI Context Generator
-
-Planned
-
----
-
-# v0.5 — Documentation Center
-
-Planned
-
----
-
-# v0.6 — Git Integration
-
-Planned
-
----
-
-# v0.7 — Templates
-
-Planned
-
----
-
-# v0.8 — Workflow Automation
-
-Planned
-
----
-
-# v1.0 — Daily Driver
-
-Planned
-
-Workflow Studio becomes the primary development environment for Orivex and future software projects.
-
-# v1.1.0 — Real Workspace Integration
-
-Completed
-
-## Added
-
-- Electron IPC handlers for active workspace metadata loading.
-- Active Orivex workspace detection from `C:\Users\mitch\Desktop\Orivex\.workflowstudio\project.json`.
-- Shared workspace service for React features.
-- Metadata-driven Dashboard page.
-- Metadata-driven Projects page.
-- AI continuation prompt generator page.
-- Clipboard copy action for generated continuation prompts.
-
-## Changed
-
-- Dashboard and Projects no longer depend on static mock project data.
-- Workflow Studio metadata updated to v1.1.0.
+Planned.

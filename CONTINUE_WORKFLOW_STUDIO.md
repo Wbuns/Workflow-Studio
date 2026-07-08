@@ -1,86 +1,118 @@
 # Continue Workflow Studio
 
-We are working on Workflow Studio.
+We are working on Workflow Studio at:
 
-Workflow Studio is a React + TypeScript + Vite + Electron desktop application located at:
-
+```text
 C:\Users\mitch\Desktop\GPT Workflow Studio
+```
+
+Workflow Studio is a React + TypeScript + Electron desktop application for package-based AI-assisted software development.
 
 ## Current Status
 
-Workflow Studio Core v1.0 is complete and committed.
+Workflow Studio v1.2 is complete and committed.
 
 Completed:
 
-- Electron shell
-- Feature-based architecture
-- Dashboard
-- Projects page
-- Packages page
-- Documentation Center
-- AI Context page
-- Git Assistant foundation
-- Templates page
-- Settings page
-- Development Session foundation
-- Workspace metadata support
-- Package tools
-- Documentation system
-- Shared UI component library
-- Responsive desktop layout
+- v1.0 Core application
+- Electron application shell
+- Responsive desktop UI
+- Dashboard, Projects, Packages, Documentation, AI, Git pages
+- Package system
+- Workspace metadata system
+- Real Workspace Integration v1.1
+- Shared Electron bridge architecture
+- Shared Git type architecture
+- Workspace Scanner foundation
+- Workspace intelligence detection
+- Dashboard workspace health
+- AI Context Engine foundation
+- Multi-workspace foundation
 
-## Current Direction
+The application can load managed workspaces through:
 
-Workflow Studio is now becoming the daily development environment for Orivex.
-
-The next milestone is:
-
-## v1.1 Real Workspace Integration
-
-Goal:
-
-Make Orivex the first real managed Workflow Studio workspace.
-
-Needed next:
-
-1. Project discovery
-2. Active workspace selection
-3. Dashboard reads active project metadata
-4. Git reads active project path
-5. AI Session Generator reads active project context
-6. Documentation reads active project docs
-
-## Orivex Workspace
-
-Orivex is located at:
-
-C:\Users\mitch\Desktop\Orivex
-
-Orivex now has:
-
+```text
 .workflowstudio/project.json
+```
 
-Current Orivex Git status at time of setup:
+## Current Architecture Goals
 
-- Branch: v0.6-milestone-4-render-stack
-- Working tree: clean
-- Local branch ahead of origin by multiple commits
-
-## Development Rules
-
-- Build before commit
+- Feature-based React architecture
+- Services contain business logic
+- Electron handles native integration only
+- Strong shared TypeScript models
+- Package-based development workflow
+- Build before every commit
 - Never commit broken builds
-- Use package-based workflow
 - Prefer complete replacement files
-- Keep features small enough to test
-- Use services over page logic
-- Workflow Studio should evolve only when it helps Orivex development
 
-## Long-Term Plan
+## v1.2 Completed Milestones
 
-After v1.1 workspace integration and AI Session Generator, development should shift approximately:
+### v1.2.1 Workspace Scanner Foundation
 
-- 90% Orivex
-- 10% Workflow Studio
+Added the shared workspace analysis model and scanning foundation.
 
-Workflow Studio should support Orivex work on render objects, effect packs, packages, documentation, marketplace systems, and future hardware workflows.
+### v1.2.2 Workspace Intelligence
+
+Added detection for:
+
+- Git repository
+- package.json
+- README.md
+- documentation folder
+- Workflow Studio metadata
+- package manager
+- build command
+- project type
+
+### v1.2.3 Dashboard Health
+
+Displayed workspace health and capabilities on the Dashboard.
+
+### v1.2.4 AI Context Engine
+
+Added the first AI Context Engine foundation for generated continuation prompts and project summaries.
+
+### v1.2.5 Multi-Workspace Foundation
+
+Added the first workspace selector and recent-workspace structure.
+
+### v1.2.6 Documentation Polish
+
+Updated README, changelog, roadmap, continuation prompt, and project metadata for the completed v1.2 milestone.
+
+## Next Recommended Direction
+
+Return to Orivex development and use Workflow Studio as the management companion.
+
+When Workflow Studio development resumes, suggested next milestone:
+
+```text
+v1.3 — Workspace Polish and Persistence
+```
+
+Possible goals:
+
+- Improve workspace selector UX
+- Harden recent workspace persistence
+- Improve AI prompt export UI
+- Add package history display
+- Add documentation freshness indicators
+- Add better error messages for missing workspace metadata
+
+## Standard Workflow
+
+Use package-based development:
+
+1. Generate a small milestone package.
+2. Install it with the package installer.
+3. Run build.
+4. Fix errors if needed.
+5. Commit only after build passes.
+
+Build command:
+
+```powershell
+cd "C:\Users\mitch\Desktop\GPT Workflow Studio"
+npm run build
+```

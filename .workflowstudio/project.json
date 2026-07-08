@@ -1,21 +1,15 @@
 {
-  "schemaVersion": "1.0",
   "name": "Workflow Studio",
   "description": "A desktop tool for package-based AI-assisted software development.",
-  "version": "1.1.0",
-  "currentMilestone": "v1.1.0-real-workspace-integration",
+  "version": "1.2.6",
+  "currentMilestone": "v1.2-complete-workspace-intelligence",
   "projectType": "electron-react-typescript",
-  "rootPath": ".",
-  "gitEnabled": true,
-  "devCommand": "npm run dev",
   "buildCommand": "npm run build",
   "testCommand": "",
-  "packageFolder": "_packages",
-  "backupFolder": "_backup",
+  "packageCommand": "",
+  "gitEnabled": true,
   "documentationPaths": [
-    "README.md",
-    "Roadmap.md",
     "docs"
   ],
-  "tagline": "Build software. Not setup."
+  "status": "v1.2 complete; ready to use while returning to Orivex development"
 }

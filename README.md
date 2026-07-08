@@ -1,52 +1,81 @@
 # Workflow Studio
 
-Workflow Studio is a desktop workspace for package-based, AI-assisted software development.
+A desktop tool for managing package-based AI-assisted software development.
 
-It is not intended to replace VS Code or Git. It organizes the work around development: projects, documentation, packages, AI context, Git visibility, milestones, backups, and continuation prompts.
+Workflow Studio is not intended to replace an IDE. It is designed to manage the information around development: projects, milestones, packages, documentation, Git status, AI context, and long-term continuity.
 
-## v1.0 Core Status
+## Current Status
 
-Workflow Studio Core is complete enough to begin daily use for Orivex development.
+**v1.2 — Workspace Intelligence is complete.**
 
-Completed core systems:
+Completed major systems:
 
-- Electron desktop shell
-- React + TypeScript + Vite application
-- Feature-based architecture
-- Dashboard
-- Projects page
-- Packages page
-- Documentation Center
-- AI Context page
-- Git Assistant foundation
-- Development Session foundation
-- Workspace metadata folder support
-- Package installer and package workflow
-- Shared desktop UI component system
-- Responsive desktop layout
-- Documentation system
+- Electron desktop application
+- Responsive desktop UI
+- Dashboard, Projects, Packages, Documentation, AI, Git, and workspace shell pages
+- Package installation workflow with validation and backups
+- Workspace metadata loading from `.workflowstudio/project.json`
+- Real workspace integration
+- Shared Electron bridge architecture
+- Shared Git type architecture
+- Workspace Scanner foundation
+- Workspace intelligence detection
+- Dashboard workspace health display
+- AI Context Engine foundation
+- Multi-workspace foundation
 
-## Current Purpose
+## v1.2 Highlights
 
-Workflow Studio now becomes the development command center for Orivex.
+Workflow Studio can now understand managed workspaces more automatically.
 
-Daily use should follow this pattern:
+It can detect and summarize:
 
-1. Open Workflow Studio.
-2. Open or select the active project.
-3. Review Git, build, milestone, package, and documentation status.
-4. Generate an AI development session prompt.
-5. Paste the prompt into ChatGPT.
-6. Build the actual product work in VS Code.
-7. Package, build, test, and commit stable milestones.
+- Git repository presence
+- `package.json`
+- README status
+- Documentation folder status
+- Workflow Studio metadata
+- Package manager
+- Build command
+- Project type
+- Workspace health
+- Workspace capabilities
+
+The AI Context Engine can generate continuation-style development context from workspace metadata and detected project information, reducing the need to manually rebuild project context between chats.
+
+## Development Workflow
+
+This project follows a package-based workflow:
+
+1. Plan a small milestone.
+2. Generate an installable package.
+3. Install the package.
+4. Build the project.
+5. Test the feature.
+6. Commit only if the build passes.
+7. Update documentation when the milestone changes project direction.
+
+## Standard Commands
+
+```powershell
+cd "C:\Users\mitch\Desktop\GPT Workflow Studio"
+npm run build
+```
+
+After a successful package install and build:
+
+```powershell
+git add .
+git commit -m "Describe completed milestone"
+```
 
 ## Next Direction
 
-After v1.0, Workflow Studio development should be driven by real Orivex needs.
+Workflow Studio v1.2 is now stable enough to use as the primary project-management companion while returning to Orivex development.
 
-Approximate focus:
+Recommended next Workflow Studio work later:
 
-- 90% Orivex
-- 10% Workflow Studio
-
-Workflow Studio should evolve only when it makes Orivex development faster, safer, or easier to resume.
+- v1.3 Workspace polish and persistence hardening
+- v1.4 AI prompt export improvements
+- v1.5 Package history and rollback UI
+- v1.6 Deeper Orivex project integration
