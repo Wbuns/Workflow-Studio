@@ -23,36 +23,21 @@ function InfoCard({ title, value, detail }: InfoCardProps) {
 export function DashboardWidgets({ summary }: DashboardWidgetsProps) {
   return (
     <>
-      <section className="module-panel continue-panel">
-        <h3>Continue Development</h3>
-        <p>
-          Resume <strong>{summary.session.activeProject}</strong> at{" "}
-          <strong>{summary.session.currentTask}</strong>.
-        </p>
-
-        <div className="module-checklist">
-          <span>Milestone: {summary.session.activeMilestone}</span>
-          <span>Next: {summary.session.nextTask}</span>
-          <span>Build: {summary.session.lastBuild}</span>
-          <span>Git: {summary.session.gitStatus}</span>
-        </div>
-      </section>
-
       <section className="panel-grid">
         <InfoCard
-          title="Current Task"
-          value={summary.session.currentTask}
-          detail="Active development session focus."
+          title="Active Workspace"
+          value={summary.projectName}
+          detail={summary.rootPath}
         />
         <InfoCard
-          title="Next Task"
-          value={summary.session.nextTask}
-          detail="Suggested follow-up after the current session."
+          title="Current Milestone"
+          value={summary.currentMilestone}
+          detail="Loaded from .workflowstudio/project.json."
         />
         <InfoCard
-          title="Git"
-          value={summary.session.gitStatus}
-          detail="Session-level source control status."
+          title="Project Version"
+          value={summary.version}
+          detail={summary.projectType}
         />
       </section>
 
@@ -78,6 +63,10 @@ export function DashboardWidgets({ summary }: DashboardWidgetsProps) {
         <article className="detail-panel">
           <h3>Workspace</h3>
           <dl>
+            <div>
+              <dt>Root</dt>
+              <dd>{summary.rootPath}</dd>
+            </div>
             <div>
               <dt>Packages</dt>
               <dd>{summary.packageFolder}</dd>
@@ -108,14 +97,18 @@ export function DashboardWidgets({ summary }: DashboardWidgetsProps) {
               <dt>Test</dt>
               <dd>{summary.testCommand}</dd>
             </div>
+            <div>
+              <dt>Git</dt>
+              <dd>{summary.gitEnabled ? "Enabled" : "Disabled"}</dd>
+            </div>
           </dl>
         </article>
 
         <article className="detail-panel next-actions-panel">
-          <h3>Session Notes</h3>
+          <h3>Next Actions</h3>
           <ul>
-            {summary.session.notes.map((note) => (
-              <li key={note}>{note}</li>
+            {summary.nextActions.map((action) => (
+              <li key={action}>{action}</li>
             ))}
           </ul>
         </article>

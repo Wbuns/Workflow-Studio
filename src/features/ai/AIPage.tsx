@@ -1,37 +1,99 @@
-import { ActionList, MetricCard, PageHeader, Panel, StatusChip } from "../../components/UI/StudioComponents";
+import { useEffect, useState } from "react";
+import { generateContinuationPrompt } from "../../services/WorkspaceService";
 import type { NavigationItem } from "../../types/navigation";
+import type { AiContinuationPrompt } from "../../types/workspace";
 
-type AIPageProps = { activePage: NavigationItem };
+type AIPageProps = {
+  activePage: NavigationItem;
+};
 
 export function AIPage({ activePage }: AIPageProps) {
-    return (
-        <div className="workspace-page">
-            <PageHeader eyebrow={activePage.eyebrow} title="AI Session Generator" description="Build copy-ready continuation prompts from project metadata, documentation, Git, packages, and current tasks." actionLabel="Generate Development Session" />
+  const [continuation, setContinuation] = useState<AiContinuationPrompt | null>(null);
+  const [copyStatus, setCopyStatus] = useState("Ready to generate");
 
-            <section className="metrics-grid">
-                <MetricCard label="System" value="Context Builder" detail="Project context collection." status="good" />
-                <MetricCard label="Goal" value="Resume Faster" detail="Start new chats without rebuilding history." />
-                <MetricCard label="Sources" value="Planned" detail="Metadata, docs, roadmap, Git, packages." />
-                <MetricCard label="Next" value="Copy Prompt" detail="One-click session export." />
-            </section>
+  useEffect(() => {
+    let isMounted = true;
 
-            <section className="ai-layout">
-                <Panel title="Context Sources">
-                    <div className="context-list">
-                        <div className="context-source"><strong>Project Metadata</strong><p>.workflowstudio/project.json — project name, milestone, workspace folders, and commands.</p></div>
-                        <div className="context-source"><strong>AI Context</strong><p>.workflowstudio/ai-context.json — current focus, rules, and next milestone guidance.</p></div>
-                        <div className="context-source"><strong>Documentation</strong><p>Vision, Design Bible, Roadmap, Architecture, Package System, and Development Workflow.</p></div>
-                        <div className="context-source"><strong>Git Status</strong><p>Branch, clean/dirty status, last commit, and working tree summary.</p></div>
-                    </div>
-                </Panel>
+    generateContinuationPrompt().then((nextPrompt) => {
+      if (isMounted) {
+        setContinuation(nextPrompt);
+        setCopyStatus("Continuation prompt generated from workspace metadata");
+      }
+    });
 
-                <Panel title="Development Session Checklist">
-                    <ActionList actions={["Confirm Git status is clean", "Read workspace metadata", "Review recent package history", "Generate continuation context", "Build before committing generated changes"]} />
-                    <div className="chip-row" style={{ marginTop: 12 }}>
-                        <StatusChip label="Session engine next" tone="good" />
-                    </div>
-                </Panel>
-            </section>
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  async function handleCopyPrompt() {
+    if (!continuation) {
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(continuation.prompt);
+      setCopyStatus("Copied to clipboard");
+    } catch (error) {
+      console.warn("Unable to copy continuation prompt.", error);
+      setCopyStatus("Copy failed — select and copy the prompt manually");
+    }
+  }
+
+  return (
+    <>
+      <section className="hero-panel project-hero">
+        <p className="eyebrow">{activePage.eyebrow}</p>
+        <h2>{activePage.title}</h2>
+        <p>
+          Generate paste-ready continuation prompts from the active workspace
+          metadata instead of rebuilding project context manually.
+        </p>
+      </section>
+
+      <section className="module-panel ai-generator-panel">
+        <div className="panel-title-row">
+          <div>
+            <h3>Continuation Prompt Generator</h3>
+            <p>{copyStatus}</p>
+          </div>
+          <button
+            className="primary-button"
+            type="button"
+            onClick={handleCopyPrompt}
+            disabled={!continuation}
+          >
+            Copy Prompt
+          </button>
         </div>
-    );
+
+        {continuation ? (
+          <>
+            <div className="project-summary ai-summary">
+              <div>
+                <span>Workspace</span>
+                <strong>{continuation.workspaceName}</strong>
+              </div>
+              <div>
+                <span>Milestone</span>
+                <strong>{continuation.milestone}</strong>
+              </div>
+              <div className="wide-row">
+                <span>Generated</span>
+                <strong>{new Date(continuation.generatedAt).toLocaleString()}</strong>
+              </div>
+            </div>
+            <textarea
+              className="prompt-output"
+              value={continuation.prompt}
+              readOnly
+              aria-label="Generated continuation prompt"
+            />
+          </>
+        ) : (
+          <p>Reading workspace metadata and generating continuation prompt.</p>
+        )}
+      </section>
+    </>
+  );
 }

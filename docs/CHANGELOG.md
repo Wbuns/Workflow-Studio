@@ -104,16 +104,22 @@ Planned
 Planned
 
 Workflow Studio becomes the primary development environment for Orivex and future software projects.
----
 
-# v0.8.0 — Package Manager Feature Pack
+# v1.1.0 — Real Workspace Integration
 
 Completed
 
 ## Added
 
-- Package Manager page connected to primary navigation.
-- Package summary cards.
-- Installed package history.
-- Package tooling command reference.
-- Workspace metadata updated to v0.8.0.
+- Electron IPC handlers for active workspace metadata loading.
+- Active Orivex workspace detection from `C:\Users\mitch\Desktop\Orivex\.workflowstudio\project.json`.
+- Shared workspace service for React features.
+- Metadata-driven Dashboard page.
+- Metadata-driven Projects page.
+- AI continuation prompt generator page.
+- Clipboard copy action for generated continuation prompts.
+
+## Changed
+
+- Dashboard and Projects no longer depend on static mock project data.
+- Workflow Studio metadata updated to v1.1.0.
