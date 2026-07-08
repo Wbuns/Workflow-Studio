@@ -5,9 +5,10 @@
   "type": "module",
   "main": "dist-electron/main.js",
   "scripts": {
-    "dev": "vite",
+    "dev": "concurrently -k \"npm run dev:vite\" \"wait-on http://localhost:5173 && npm run electron:build && electron .\"",
+    "dev:vite": "vite",
     "electron:build": "tsc -p tsconfig.electron.json",
-    "electron:dev": "concurrently -k \"npm run dev\" \"wait-on http://localhost:5173 && npm run electron:build && electron .\"",
+    "electron:dev": "npm run dev",
     "build": "tsc -b && vite build && npm run electron:build",
     "lint": "eslint .",
     "preview": "vite preview"
