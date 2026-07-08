@@ -2,13 +2,23 @@
   "schemaVersion": "1.0",
   "purpose": "Store project context that helps future AI sessions continue development safely.",
   "activeGoal": "Build Workflow Studio into a package-based AI-assisted development workspace.",
-  "currentFocus": "Workspace metadata foundation and future Project Manager.",
+  "currentFocus": "AI Context Feature Pack and future automatic session export.",
   "importantRules": [
     "Small milestones",
     "Build before commit",
     "Never commit broken builds",
     "Prefer complete replacement files over risky partial edits",
-    "Use packages for multi-file milestones"
+    "Use packages for multi-file milestones",
+    "Keep AI context grounded in project metadata and documentation"
   ],
-  "nextLikelyMilestone": "Project Manager foundation"
+  "contextSources": [
+    ".workflowstudio/project.json",
+    ".workflowstudio/ai-context.json",
+    "docs/Roadmap.md",
+    "docs/Design Bible.md",
+    "docs/Development Workflow.md",
+    "docs/Package System.md",
+    "docs/AI Workflow.md"
+  ],
+  "nextLikelyMilestone": "AI context export and development session generator"
 }

@@ -22,3 +22,8 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+_backup/
+dist/
+dist-electron/
+node_modules/

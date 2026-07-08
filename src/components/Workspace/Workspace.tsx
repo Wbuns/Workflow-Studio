@@ -1,5 +1,6 @@
+import { AIPage } from "../../features/ai/AIPage";
 import { DashboardPage } from "../../features/dashboard/DashboardPage";
-import { PackageManagerPage } from "../../features/packages/PackageManagerPage";
+import { PackagesPage } from "../../features/packages/PackagesPage";
 import { PlaceholderPage } from "../../features/placeholder/PlaceholderPage";
 import { ProjectsPage } from "../../features/projects/ProjectsPage";
 import type { NavigationItem } from "../../types/navigation";
@@ -13,10 +14,12 @@ export function Workspace({ activePage }: WorkspaceProps) {
     <main className="workspace">
       {activePage.id === "dashboard" && <DashboardPage activePage={activePage} />}
       {activePage.id === "projects" && <ProjectsPage activePage={activePage} />}
-      {activePage.id === "packages" && <PackageManagerPage activePage={activePage} />}
+      {activePage.id === "packages" && <PackagesPage activePage={activePage} />}
+      {activePage.id === "ai" && <AIPage activePage={activePage} />}
       {activePage.id !== "dashboard" &&
         activePage.id !== "projects" &&
-        activePage.id !== "packages" && <PlaceholderPage activePage={activePage} />}
+        activePage.id !== "packages" &&
+        activePage.id !== "ai" && <PlaceholderPage activePage={activePage} />}
     </main>
   );
 }
