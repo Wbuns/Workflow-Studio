@@ -104,16 +104,3 @@ Planned
 Planned
 
 Workflow Studio becomes the primary development environment for Orivex and future software projects.
----
-
-# v0.8.0 — Package Manager Feature Pack
-
-Completed
-
-## Added
-
-- Package Manager page connected to primary navigation.
-- Package summary cards.
-- Installed package history.
-- Package tooling command reference.
-- Workspace metadata updated to v0.8.0.

@@ -16,8 +16,38 @@
     {
       "id": "workflowstudio-v0.3.2-workspace-metadata-foundation",
       "version": "0.3.2",
-      "status": "pending-install",
-      "description": "Adds workspace metadata foundation."
+      "status": "installed",
+      "description": "Added workspace metadata foundation."
+    },
+    {
+      "id": "workflowstudio-v0.4.0-workspace-engine",
+      "version": "0.4.0",
+      "status": "installed",
+      "description": "Added workspace metadata engine."
+    },
+    {
+      "id": "workflowstudio-v0.5.0-workspace-feature-pack",
+      "version": "0.5.0",
+      "status": "installed",
+      "description": "Added workspace dashboard feature pack."
+    },
+    {
+      "id": "workflowstudio-v0.6.0-workspace-window-polish",
+      "version": "0.6.0",
+      "status": "installed",
+      "description": "Polished workspace window startup."
+    },
+    {
+      "id": "workflowstudio-v0.7.0-project-manager-feature-pack",
+      "version": "0.7.0",
+      "status": "installed",
+      "description": "Added project manager feature pack."
+    },
+    {
+      "id": "workflowstudio-v0.8.0-package-manager-feature-pack",
+      "version": "0.8.0",
+      "status": "installed",
+      "description": "Added package manager UI and package history."
     }
   ]
 }
