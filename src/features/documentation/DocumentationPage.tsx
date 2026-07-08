@@ -4,6 +4,7 @@ import {
   listDocumentation,
   type DocumentationEntry,
 } from "../../services/DocumentationService";
+import { openWorkspacePath } from "../../services/WorkspaceOpenService";
 
 type DocumentationPageProps = {
   activePage: NavigationItem;
@@ -20,6 +21,7 @@ function formatKind(kind: DocumentationEntry["kind"]) {
 
 export function DocumentationPage({ activePage, rootPath }: DocumentationPageProps) {
   const [entries, setEntries] = useState<DocumentationEntry[] | null>(null);
+  const [status, setStatus] = useState("");
 
   useEffect(() => {
     let isMounted = true;
@@ -35,19 +37,29 @@ export function DocumentationPage({ activePage, rootPath }: DocumentationPagePro
     };
   }, [rootPath]);
 
+  async function handleOpenPath(relativePath: string) {
+    const result = await openWorkspacePath(rootPath, relativePath);
+    setStatus(result.message);
+  }
+
   return (
     <>
       <section className="hero-panel">
         <p className="eyebrow">{activePage.eyebrow}</p>
         <h2>Documentation</h2>
         <p>
-          <strong>Documentation discovery is active.</strong> This page now lists Markdown
-          knowledge files found in the selected workspace.
+          <strong>Documentation discovery is active.</strong> This page lists Markdown
+          knowledge files found in the selected workspace and can open them in the operating
+          system default editor.
         </p>
       </section>
 
       <section className="detail-panel documentation-panel">
-        <h3>Detected Documents</h3>
+        <div className="library-panel-header">
+          <h3>Detected Documents</h3>
+          {status && <span>{status}</span>}
+        </div>
+
         {entries === null ? (
           <p className="empty-state">Scanning documentation paths.</p>
         ) : entries.length > 0 ? (
@@ -58,7 +70,12 @@ export function DocumentationPage({ activePage, rootPath }: DocumentationPagePro
                   <strong>{entry.title}</strong>
                   <span>{entry.path}</span>
                 </div>
-                <mark>{formatKind(entry.kind)}</mark>
+                <div className="library-card-actions">
+                  <mark>{formatKind(entry.kind)}</mark>
+                  <button className="secondary-button" onClick={() => handleOpenPath(entry.path)}>
+                    Open
+                  </button>
+                </div>
               </article>
             ))}
           </div>

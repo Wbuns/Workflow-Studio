@@ -2,8 +2,9 @@ import { AIPage } from "../../features/ai/AIPage";
 import { DashboardPage } from "../../features/dashboard/DashboardPage";
 import { DocumentationPage } from "../../features/documentation/DocumentationPage";
 import { GitPage } from "../../features/git/GitPage";
-import { PlaceholderPage } from "../../features/placeholder/PlaceholderPage";
+import { PackagesPage } from "../../features/packages/PackagesPage";
 import { ProjectsPage } from "../../features/projects/ProjectsPage";
+import { TemplatesPage } from "../../features/templates/TemplatesPage";
 import { SettingsPage } from "../../features/settings/SettingsPage";
 import type { NavigationItem } from "../../types/navigation";
 import type { WorkspaceRecord } from "../../types/workspaceRegistry";
@@ -22,18 +23,18 @@ export function Workspace({ activePage, activeWorkspace }: WorkspaceProps) {
       {activePage.id === "projects" && (
         <ProjectsPage activePage={activePage} activeWorkspace={activeWorkspace} />
       )}
+      {activePage.id === "packages" && (
+        <PackagesPage activePage={activePage} rootPath={rootPath} />
+      )}
       {activePage.id === "documentation" && (
         <DocumentationPage activePage={activePage} rootPath={rootPath} />
       )}
       {activePage.id === "ai" && <AIPage activePage={activePage} rootPath={rootPath} />}
       {activePage.id === "git" && <GitPage activePage={activePage} rootPath={rootPath} />}
+      {activePage.id === "templates" && (
+        <TemplatesPage activePage={activePage} rootPath={rootPath} />
+      )}
       {activePage.id === "settings" && <SettingsPage activePage={activePage} />}
-      {activePage.id !== "dashboard" &&
-        activePage.id !== "projects" &&
-        activePage.id !== "documentation" &&
-        activePage.id !== "ai" &&
-        activePage.id !== "git" &&
-        activePage.id !== "settings" && <PlaceholderPage activePage={activePage} />}
     </main>
   );
 }

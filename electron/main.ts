@@ -1,4 +1,4 @@
-import { app, BrowserWindow, Menu, ipcMain, dialog } from "electron";
+import { app, BrowserWindow, Menu, ipcMain, dialog, shell } from "electron";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -70,6 +70,25 @@ type DocumentationEntry = {
   title: string;
   path: string;
   kind: "readme" | "docs" | "metadata" | "prompt" | "template";
+};
+
+type WorkspacePackageEntry = {
+  name: string;
+  path: string;
+  kind: "package-folder" | "installed-history" | "backup-folder";
+  detail: string;
+};
+
+type WorkspaceTemplateEntry = {
+  name: string;
+  path: string;
+  kind: "template" | "prompt";
+  detail: string;
+};
+
+type OpenPathResult = {
+  ok: boolean;
+  message: string;
 };
 
 type PackageJson = {
@@ -342,6 +361,108 @@ function collectMarkdownFiles(rootPath: string, relativeFolder: string, kind: Do
     }));
 }
 
+
+function listDirectoryEntries(rootPath: string, relativeFolder: string) {
+  const folderPath = path.join(rootPath, relativeFolder);
+
+  if (!fs.existsSync(folderPath) || !fs.statSync(folderPath).isDirectory()) {
+    return [];
+  }
+
+  return fs
+    .readdirSync(folderPath, { withFileTypes: true })
+    .filter((entry) => !entry.name.startsWith("."))
+    .sort((a, b) => a.name.localeCompare(b.name));
+}
+
+function listPackages(rootPathInput?: string): WorkspacePackageEntry[] {
+  const rootPath = normalizeRoot(rootPathInput);
+  const entries: WorkspacePackageEntry[] = [];
+
+  for (const entry of listDirectoryEntries(rootPath, "_packages")) {
+    entries.push({
+      name: entry.name,
+      path: path.join("_packages", entry.name),
+      kind: "package-folder",
+      detail: entry.isDirectory() ? "Local package folder" : "Package file",
+    });
+  }
+
+  for (const entry of listDirectoryEntries(rootPath, "_backup")) {
+    entries.push({
+      name: entry.name,
+      path: path.join("_backup", entry.name),
+      kind: "backup-folder",
+      detail: entry.isDirectory() ? "Backup history folder" : "Backup file",
+    });
+  }
+
+  const packageHistory = readJson<{ packages?: Array<{ name?: string; packageId?: string; installedDate?: string; version?: string }> }>(
+    rootPath,
+    ".workflowstudio/packages.json",
+  );
+
+  for (const packageRecord of packageHistory?.packages ?? []) {
+    const name = packageRecord.name ?? packageRecord.packageId ?? "Installed package";
+    entries.push({
+      name,
+      path: ".workflowstudio/packages.json",
+      kind: "installed-history",
+      detail: packageRecord.installedDate
+        ? `Installed ${packageRecord.installedDate}`
+        : packageRecord.version
+          ? `Version ${packageRecord.version}`
+          : "Package history record",
+    });
+  }
+
+  return entries;
+}
+
+function collectReusableFiles(
+  rootPath: string,
+  relativeFolder: string,
+  kind: WorkspaceTemplateEntry["kind"],
+): WorkspaceTemplateEntry[] {
+  return listDirectoryEntries(rootPath, relativeFolder)
+    .filter((entry) => entry.isDirectory() || /\.(md|txt|json|tsx?|ps1)$/i.test(entry.name))
+    .map((entry) => ({
+      name: entry.name.replace(/\.(md|txt|json|tsx?|ps1)$/i, ""),
+      path: path.join(relativeFolder, entry.name),
+      kind,
+      detail: entry.isDirectory() ? "Reusable folder" : "Reusable file",
+    }));
+}
+
+function listTemplates(rootPathInput?: string): WorkspaceTemplateEntry[] {
+  const rootPath = normalizeRoot(rootPathInput);
+
+  return [
+    ...collectReusableFiles(rootPath, "templates", "template"),
+    ...collectReusableFiles(rootPath, "prompts", "prompt"),
+  ];
+}
+
+async function openWorkspacePath(rootPathInput: string | undefined, relativePath: string): Promise<OpenPathResult> {
+  const rootPath = normalizeRoot(rootPathInput);
+  const targetPath = path.resolve(rootPath, relativePath);
+
+  if (!targetPath.startsWith(rootPath)) {
+    return { ok: false, message: "Blocked path outside the active workspace." };
+  }
+
+  if (!fs.existsSync(targetPath)) {
+    return { ok: false, message: "Path does not exist yet." };
+  }
+
+  const result = await shell.openPath(targetPath);
+
+  return {
+    ok: result.length === 0,
+    message: result.length === 0 ? "Opened." : result,
+  };
+}
+
 function listDocumentation(rootPathInput?: string): DocumentationEntry[] {
   const rootPath = normalizeRoot(rootPathInput);
   const entries: DocumentationEntry[] = [];
@@ -362,6 +483,11 @@ function listDocumentation(rootPathInput?: string): DocumentationEntry[] {
 ipcMain.handle("workspace:scan", (_event, rootPath?: string) => scanWorkspace(rootPath));
 ipcMain.handle("workspace:gitStatus", (_event, rootPath?: string) => getGitStatus(rootPath));
 ipcMain.handle("workspace:listDocumentation", (_event, rootPath?: string) => listDocumentation(rootPath));
+ipcMain.handle("workspace:listPackages", (_event, rootPath?: string) => listPackages(rootPath));
+ipcMain.handle("workspace:listTemplates", (_event, rootPath?: string) => listTemplates(rootPath));
+ipcMain.handle("workspace:openPath", (_event, rootPath: string | undefined, relativePath: string) =>
+  openWorkspacePath(rootPath, relativePath),
+);
 ipcMain.handle("workspace:openFolder", async () => {
   const result = await dialog.showOpenDialog({
     title: "Open Workspace Folder",

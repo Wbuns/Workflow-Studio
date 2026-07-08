@@ -1,8 +1,8 @@
 {
   "name": "Workflow Studio",
-  "description": "A desktop tool for package-based AI-assisted software development with workspace intelligence, AI context generation, real workspace switching, Git status, and documentation discovery.",
-  "version": "1.2.7",
-  "currentMilestone": "v1.2.7-usability-reality-check",
+  "description": "A desktop tool for package-based AI-assisted software development.",
+  "version": "1.2.6",
+  "currentMilestone": "v1.2-complete-workspace-intelligence",
   "projectType": "electron-react-typescript",
   "buildCommand": "npm run build",
   "testCommand": "",
