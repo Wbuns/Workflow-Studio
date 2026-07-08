@@ -1,48 +1,50 @@
+import { useEffect, useState } from "react";
 import type { NavigationItem } from "../../types/navigation";
+import { getDashboardSummary } from "./DashboardService";
+import type { DashboardSummary } from "./DashboardTypes";
+import { DashboardWidgets } from "./DashboardWidgets";
 
 type DashboardPageProps = {
   activePage: NavigationItem;
 };
 
-const dashboardCards = [
-  {
-    title: "Current Milestone",
-    value: "v0.3 Shell Architecture",
-    detail: "Split the app shell into reusable components and feature folders.",
-  },
-  {
-    title: "Workflow Rule",
-    value: "Build before commit",
-    detail: "Every milestone should remain installable and reversible.",
-  },
-  {
-    title: "Next System",
-    value: "Package Manager",
-    detail: "Create, install, validate, and roll back milestone packages.",
-  },
-];
-
 export function DashboardPage({ activePage }: DashboardPageProps) {
+  const [summary, setSummary] = useState<DashboardSummary | null>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    getDashboardSummary().then((nextSummary) => {
+      if (isMounted) {
+        setSummary(nextSummary);
+      }
+    });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   return (
     <>
       <section className="hero-panel">
         <p className="eyebrow">{activePage.eyebrow}</p>
-        <h2>{activePage.description}</h2>
+        <h2>{summary?.projectName ?? "Workflow Studio"}</h2>
         <p>
-          Workflow Studio is now organized around a stable shell, reusable
-          components, and feature modules.
+          <strong>{summary?.tagline ?? "Build software. Not setup."}</strong>{" "}
+          {summary?.description ??
+            "Loading workspace metadata and dashboard summary."}
         </p>
       </section>
 
-      <section className="panel-grid">
-        {dashboardCards.map((card) => (
-          <article className="info-panel" key={card.title}>
-            <h3>{card.title}</h3>
-            <p>{card.value}</p>
-            <span>{card.detail}</span>
-          </article>
-        ))}
-      </section>
+      {summary ? (
+        <DashboardWidgets summary={summary} />
+      ) : (
+        <section className="module-panel">
+          <h3>Loading Workspace</h3>
+          <p>Reading workspace metadata and preparing the dashboard.</p>
+        </section>
+      )}
     </>
   );
 }

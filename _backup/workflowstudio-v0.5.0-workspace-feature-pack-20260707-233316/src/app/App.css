@@ -51,8 +51,7 @@ button {
 .info-panel h3,
 .info-panel p,
 .module-panel h3,
-.module-panel p,
-.detail-panel h3 {
+.module-panel p {
   margin: 0;
 }
 
@@ -156,8 +155,7 @@ button {
 
 .hero-panel,
 .info-panel,
-.module-panel,
-.detail-panel {
+.module-panel {
   border: 1px solid rgba(148, 163, 184, 0.18);
   border-radius: 18px;
   background: rgba(15, 23, 42, 0.72);
@@ -198,8 +196,7 @@ button {
 }
 
 .info-panel h3,
-.module-panel h3,
-.detail-panel h3 {
+.module-panel h3 {
   color: #93c5fd;
   font-size: 14px;
 }
@@ -245,63 +242,6 @@ button {
   font-size: 13px;
 }
 
-.dashboard-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 18px;
-  margin-top: 18px;
-}
-
-.detail-panel {
-  padding: 22px;
-}
-
-.detail-panel dl {
-  display: grid;
-  gap: 14px;
-  margin: 18px 0 0;
-}
-
-.detail-panel div {
-  display: grid;
-  grid-template-columns: 150px 1fr;
-  gap: 14px;
-  padding-bottom: 12px;
-  border-bottom: 1px solid rgba(148, 163, 184, 0.12);
-}
-
-.detail-panel div:last-child {
-  padding-bottom: 0;
-  border-bottom: none;
-}
-
-.detail-panel dt {
-  color: #94a3b8;
-  font-size: 13px;
-}
-
-.detail-panel dd {
-  margin: 0;
-  color: #e5e7eb;
-  line-height: 1.5;
-}
-
-.next-actions-panel ul {
-  display: grid;
-  gap: 10px;
-  margin: 18px 0 0;
-  padding: 0;
-  list-style: none;
-}
-
-.next-actions-panel li {
-  border: 1px solid rgba(96, 165, 250, 0.24);
-  border-radius: 12px;
-  padding: 10px 12px;
-  color: #bfdbfe;
-  background: rgba(37, 99, 235, 0.12);
-}
-
 .status-bar {
   grid-area: status;
   display: flex;
@@ -320,17 +260,11 @@ button {
     grid-template-columns: 220px 1fr;
   }
 
-  .panel-grid,
-  .dashboard-grid {
+  .panel-grid {
     grid-template-columns: 1fr;
   }
 
   .hero-panel h2 {
     font-size: 30px;
-  }
-
-  .detail-panel div {
-    grid-template-columns: 1fr;
-    gap: 4px;
   }
 }

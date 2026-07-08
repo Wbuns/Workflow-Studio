@@ -9,8 +9,8 @@ const isDev = !app.isPackaged;
 
 function createWindow() {
   const mainWindow = new BrowserWindow({
-    width: 1440,
-    height: 920,
+    width: 1280,
+    height: 840,
     minWidth: 900,
     minHeight: 600,
     title: "Workflow Studio",
@@ -25,7 +25,6 @@ function createWindow() {
   });
 
   mainWindow.once("ready-to-show", () => {
-    mainWindow.maximize();
     mainWindow.show();
   });
 
