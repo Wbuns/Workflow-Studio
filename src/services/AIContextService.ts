@@ -106,8 +106,8 @@ Development workflow:
 `;
 }
 
-export async function generateAIContext(): Promise<AIContextSummary> {
-  const analysis = await scanWorkspace();
+export async function generateAIContext(rootPath?: string): Promise<AIContextSummary> {
+  const analysis = await scanWorkspace(rootPath);
   const generatedAt = new Date().toLocaleString();
 
   return {

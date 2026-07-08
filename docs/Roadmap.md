@@ -112,6 +112,14 @@ Completed.
 - Continuation prompt update
 - Project metadata update
 
+### v1.2.7 Usability Reality Check
+
+- Real Git status display
+- Open Folder Electron dialog
+- Workspace selector path propagation
+- Documentation discovery page
+- Settings notes for future UI scale and compact mode
+
 ---
 
 # Next Recommended Workflow
@@ -133,6 +141,7 @@ Potential goals:
 - Harden recent workspace persistence.
 - Improve workspace selector UX.
 - Add clearer empty and error states.
+- Add UI scale and compact display controls.
 - Improve workspace metadata warnings.
 - Add better open-folder feedback.
 

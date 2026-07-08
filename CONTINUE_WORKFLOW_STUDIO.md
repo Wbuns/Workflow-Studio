@@ -10,7 +10,7 @@ Workflow Studio is a React + TypeScript + Electron desktop application for packa
 
 ## Current Status
 
-Workflow Studio v1.2 is complete and committed.
+Workflow Studio v1.2.7 is complete and committed.
 
 Completed:
 
@@ -28,6 +28,7 @@ Completed:
 - Dashboard workspace health
 - AI Context Engine foundation
 - Multi-workspace foundation
+- Usability Reality Check v1.2.7
 
 The application can load managed workspaces through:
 
@@ -80,6 +81,10 @@ Added the first workspace selector and recent-workspace structure.
 ### v1.2.6 Documentation Polish
 
 Updated README, changelog, roadmap, continuation prompt, and project metadata for the completed v1.2 milestone.
+
+### v1.2.7 Usability Reality Check
+
+Connected Git, Documentation, Open Folder, and workspace selector behavior to real workspace data. Added future Settings notes for UI scale and compact display options.
 
 ## Next Recommended Direction
 

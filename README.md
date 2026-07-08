@@ -79,3 +79,17 @@ Recommended next Workflow Studio work later:
 - v1.4 AI prompt export improvements
 - v1.5 Package history and rollback UI
 - v1.6 Deeper Orivex project integration
+
+
+## v1.2.7 Usability Reality Check
+
+This cleanup milestone connects the remaining placeholder-like pages to real workspace data.
+
+Added:
+
+- Real Git status display for the selected workspace.
+- Open Folder bridge support through Electron.
+- Workspace selector path propagation to Dashboard, AI, Git, and Documentation pages.
+- Documentation discovery for README, docs, metadata, prompts, and templates.
+- Settings notes for future UI Scale and compact display options.
+

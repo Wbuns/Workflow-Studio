@@ -61,7 +61,7 @@ function toDashboardSummary(analysis: WorkspaceAnalysis): DashboardSummary {
   };
 }
 
-export async function getDashboardSummary(): Promise<DashboardSummary> {
-  const analysis = await scanWorkspace();
+export async function getDashboardSummary(rootPath?: string): Promise<DashboardSummary> {
+  const analysis = await scanWorkspace(rootPath);
   return toDashboardSummary(analysis);
 }

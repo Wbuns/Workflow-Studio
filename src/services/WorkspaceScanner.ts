@@ -2,9 +2,9 @@ import type { WorkspaceAnalysis } from "../types/workspaceAnalysis";
 
 export type WorkspaceScannerBridge = {
   workspace?: {
-    scan?: () => Promise<WorkspaceAnalysis>;
+    scan?: (rootPath?: string) => Promise<WorkspaceAnalysis>;
   };
-  scanWorkspace?: () => Promise<WorkspaceAnalysis>;
+  scanWorkspace?: (rootPath?: string) => Promise<WorkspaceAnalysis>;
 };
 
 const fallbackAnalysis: WorkspaceAnalysis = {
@@ -64,20 +64,23 @@ const fallbackAnalysis: WorkspaceAnalysis = {
   },
 };
 
-export async function scanWorkspace(): Promise<WorkspaceAnalysis> {
+export async function scanWorkspace(rootPath?: string): Promise<WorkspaceAnalysis> {
   const bridge = (window as { workflowStudio?: WorkspaceScannerBridge }).workflowStudio;
 
   try {
     if (bridge?.workspace?.scan) {
-      return await bridge.workspace.scan();
+      return await bridge.workspace.scan(rootPath);
     }
 
     if (bridge?.scanWorkspace) {
-      return await bridge.scanWorkspace();
+      return await bridge.scanWorkspace(rootPath);
     }
   } catch (error) {
     console.warn("Unable to scan workspace through Electron bridge.", error);
   }
 
-  return fallbackAnalysis;
+  return {
+    ...fallbackAnalysis,
+    rootPath: rootPath ?? fallbackAnalysis.rootPath,
+  };
 }

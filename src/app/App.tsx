@@ -68,7 +68,7 @@ function App() {
         navigationItems={navigationItems}
         onNavigate={setActivePageId}
       />
-      <Workspace activePage={activePage} />
+      <Workspace activePage={activePage} activeWorkspace={activeWorkspace} />
       <StatusBar activePage={activePage} activeWorkspace={activeWorkspace} />
     </div>
   );

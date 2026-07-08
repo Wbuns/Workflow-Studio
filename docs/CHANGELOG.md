@@ -2,6 +2,27 @@
 
 All notable changes to Workflow Studio are documented here.
 
+
+# v1.2.7 — Usability Reality Check
+
+Completed.
+
+## Added
+
+- Real Git status page for the selected workspace.
+- Electron Open Folder dialog support.
+- Workspace selector path propagation into Dashboard, AI, Git, and Documentation.
+- Documentation page that lists detected Markdown project knowledge files.
+- Settings page notes for future UI scale and compact display options.
+
+## Fixed
+
+- Git page no longer appears as a placeholder during v1.2 testing.
+- Documentation page no longer appears as a placeholder during v1.2 testing.
+- Workspace selector now changes the active workspace path used by workspace-aware pages.
+
+---
+
 This project follows a milestone-based development workflow.
 
 ---

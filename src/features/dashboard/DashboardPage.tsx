@@ -6,15 +6,16 @@ import { DashboardWidgets } from "./DashboardWidgets";
 
 type DashboardPageProps = {
   activePage: NavigationItem;
+  rootPath?: string;
 };
 
-export function DashboardPage({ activePage }: DashboardPageProps) {
+export function DashboardPage({ activePage, rootPath }: DashboardPageProps) {
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
 
   useEffect(() => {
     let isMounted = true;
 
-    getDashboardSummary().then((nextSummary) => {
+    getDashboardSummary(rootPath).then((nextSummary) => {
       if (isMounted) {
         setSummary(nextSummary);
       }
@@ -23,7 +24,7 @@ export function DashboardPage({ activePage }: DashboardPageProps) {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [rootPath]);
 
   return (
     <>

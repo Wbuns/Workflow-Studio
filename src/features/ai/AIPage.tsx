@@ -4,16 +4,17 @@ import { generateAIContext, type AIContextSummary } from "../../services/AIConte
 
 type AIPageProps = {
   activePage: NavigationItem;
+  rootPath?: string;
 };
 
-export function AIPage({ activePage }: AIPageProps) {
+export function AIPage({ activePage, rootPath }: AIPageProps) {
   const [context, setContext] = useState<AIContextSummary | null>(null);
   const [copyStatus, setCopyStatus] = useState("Ready to copy");
 
   useEffect(() => {
     let isMounted = true;
 
-    generateAIContext().then((nextContext) => {
+    generateAIContext(rootPath).then((nextContext) => {
       if (isMounted) {
         setContext(nextContext);
       }
@@ -22,7 +23,7 @@ export function AIPage({ activePage }: AIPageProps) {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [rootPath]);
 
   async function copyContinuationPrompt() {
     if (!context) return;

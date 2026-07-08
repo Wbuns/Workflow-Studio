@@ -1,9 +1,13 @@
 import { contextBridge, ipcRenderer } from "electron";
 contextBridge.exposeInMainWorld("workflowStudio", {
-    version: "1.2.2",
+    version: "1.2.7",
     platform: process.platform,
     workspace: {
-        scan: () => ipcRenderer.invoke("workspace:scan"),
+        scan: (rootPath) => ipcRenderer.invoke("workspace:scan", rootPath),
+        openFolder: () => ipcRenderer.invoke("workspace:openFolder"),
+        gitStatus: (rootPath) => ipcRenderer.invoke("workspace:gitStatus", rootPath),
+        listDocumentation: (rootPath) => ipcRenderer.invoke("workspace:listDocumentation", rootPath),
     },
-    scanWorkspace: () => ipcRenderer.invoke("workspace:scan"),
+    scanWorkspace: (rootPath) => ipcRenderer.invoke("workspace:scan", rootPath),
+    openWorkspaceFolder: () => ipcRenderer.invoke("workspace:openFolder"),
 });

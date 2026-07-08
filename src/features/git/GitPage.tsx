@@ -1,53 +1,89 @@
 import { useEffect, useState } from "react";
-import { ActionList, MetricCard, PageHeader, Panel, StatusChip } from "../../components/UI/StudioComponents";
-import { getGitStatus } from "../../services/GitService";
-import type { GitStatus } from "../../types/git";
 import type { NavigationItem } from "../../types/navigation";
+import { getGitStatus, type GitStatus } from "../../services/GitService";
 
-type GitPageProps = { activePage: NavigationItem };
+type GitPageProps = {
+  activePage: NavigationItem;
+  rootPath?: string;
+};
 
-export function GitPage({ activePage }: GitPageProps) {
-    const [gitStatus, setGitStatus] = useState<GitStatus | null>(null);
+function getStatusLabel(status: GitStatus["status"]) {
+  if (status === "clean") return "Clean";
+  if (status === "dirty") return "Changes Detected";
+  return "Not a Repository";
+}
 
-    useEffect(() => {
-        let isMounted = true;
-        getGitStatus().then((status) => {
-            if (isMounted) setGitStatus(status);
-        });
-        return () => { isMounted = false; };
-    }, []);
+export function GitPage({ activePage, rootPath }: GitPageProps) {
+  const [gitStatus, setGitStatus] = useState<GitStatus | null>(null);
 
-    const clean = gitStatus?.clean ?? false;
-    const workingTree = gitStatus ? (clean ? "Clean" : "Changes") : "Loading";
+  useEffect(() => {
+    let isMounted = true;
 
-    return (
-        <div className="workspace-page">
-            <PageHeader eyebrow={activePage.eyebrow} title="Git Assistant" description="Review repository status before committing milestone work." actionLabel={activePage.actionLabel} />
+    getGitStatus(rootPath).then((nextStatus) => {
+      if (isMounted) {
+        setGitStatus(nextStatus);
+      }
+    });
 
-            <section className="metrics-grid">
-                <MetricCard label="Branch" value={gitStatus?.branch ?? "Loading"} detail="Current working branch." />
-                <MetricCard label="Working Tree" value={workingTree} detail={clean ? "No pending changes detected." : "Review pending changes before commit."} status={clean ? "good" : "warning"} />
-                <MetricCard label="Modified" value={gitStatus?.modified ?? 0} detail="Changed files." />
-                <MetricCard label="Untracked" value={gitStatus?.untracked ?? 0} detail="New files not yet tracked." />
-            </section>
+    return () => {
+      isMounted = false;
+    };
+  }, [rootPath]);
 
-            <section className="git-layout">
-                <Panel title="Repository Summary">
-                    <dl className="definition-grid">
-                        <div><dt>Staged Files</dt><dd>{gitStatus?.staged ?? 0}</dd></div>
-                        <div><dt>Untracked Files</dt><dd>{gitStatus?.untracked ?? 0}</dd></div>
-                        <div className="wide-row"><dt>Last Commit</dt><dd>{gitStatus?.lastCommit ?? "Loading Git status"}</dd></div>
-                    </dl>
-                    <div className="chip-row" style={{ marginTop: 12 }}>
-                        <StatusChip label={clean ? "Clean" : "Dirty"} tone={clean ? "good" : "warning"} />
-                        <StatusChip label="Build before commit" />
-                    </div>
-                </Panel>
+  return (
+    <>
+      <section className="hero-panel">
+        <p className="eyebrow">{activePage.eyebrow}</p>
+        <h2>Git Status</h2>
+        <p>
+          <strong>Source control is connected.</strong> Workflow Studio now reads the selected
+          workspace instead of showing a placeholder Git page.
+        </p>
+      </section>
 
-                <Panel title="Commit Checklist">
-                    <ActionList actions={["Run npm run build", "Review changed files", "Update documentation if needed", "Commit stable milestone"]} />
-                </Panel>
-            </section>
-        </div>
-    );
+      {gitStatus ? (
+        <section className="git-layout">
+          <article className="detail-panel">
+            <h3>Repository</h3>
+            <dl>
+              <div>
+                <dt>Status</dt>
+                <dd>{getStatusLabel(gitStatus.status)}</dd>
+              </div>
+              <div>
+                <dt>Branch</dt>
+                <dd>{gitStatus.branch}</dd>
+              </div>
+              <div>
+                <dt>Summary</dt>
+                <dd>{gitStatus.summary}</dd>
+              </div>
+            </dl>
+          </article>
+
+          <article className="detail-panel git-files-panel">
+            <h3>Changed Files</h3>
+            {gitStatus.changedFiles.length > 0 ? (
+              <ul className="file-list">
+                {gitStatus.changedFiles.map((file) => (
+                  <li key={file}>{file}</li>
+                ))}
+              </ul>
+            ) : (
+              <p className="empty-state">
+                {gitStatus.isRepository
+                  ? "No changed files detected. This workspace is ready for a clean milestone commit."
+                  : "Open a folder with a .git directory to view repository status."}
+              </p>
+            )}
+          </article>
+        </section>
+      ) : (
+        <section className="module-panel">
+          <h3>Loading Git Status</h3>
+          <p>Checking the selected workspace repository.</p>
+        </section>
+      )}
+    </>
+  );
 }

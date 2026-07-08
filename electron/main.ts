@@ -1,13 +1,14 @@
-import { app, BrowserWindow, Menu, ipcMain } from "electron";
+import { app, BrowserWindow, Menu, ipcMain, dialog } from "electron";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { execSync } from "node:child_process";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const isDev = !app.isPackaged;
-const workspaceRoot = path.resolve(__dirname, "..");
+const defaultWorkspaceRoot = path.resolve(__dirname, "..");
 
 type WorkspaceProjectType =
   | "react"
@@ -57,6 +58,20 @@ type WorkspaceAnalysis = {
   };
 };
 
+type GitStatus = {
+  isRepository: boolean;
+  branch: string;
+  status: "clean" | "dirty" | "not-repository";
+  changedFiles: string[];
+  summary: string;
+};
+
+type DocumentationEntry = {
+  title: string;
+  path: string;
+  kind: "readme" | "docs" | "metadata" | "prompt" | "template";
+};
+
 type PackageJson = {
   name?: string;
   scripts?: Record<string, string>;
@@ -64,16 +79,21 @@ type PackageJson = {
   devDependencies?: Record<string, string>;
 };
 
-function exists(relativePath: string) {
-  return fs.existsSync(path.join(workspaceRoot, relativePath));
+function normalizeRoot(rootPath?: string) {
+  if (!rootPath || rootPath.trim() === ".") return defaultWorkspaceRoot;
+  return path.resolve(rootPath);
 }
 
-function findFirstExisting(paths: string[]) {
-  return paths.find((candidate) => exists(candidate));
+function exists(rootPath: string, relativePath: string) {
+  return fs.existsSync(path.join(rootPath, relativePath));
 }
 
-function readJson<T>(relativePath: string): T | null {
-  const filePath = path.join(workspaceRoot, relativePath);
+function findFirstExisting(rootPath: string, paths: string[]) {
+  return paths.find((candidate) => exists(rootPath, candidate));
+}
+
+function readJson<T>(rootPath: string, relativePath: string): T | null {
+  const filePath = path.join(rootPath, relativePath);
 
   if (!fs.existsSync(filePath)) {
     return null;
@@ -87,11 +107,11 @@ function readJson<T>(relativePath: string): T | null {
   }
 }
 
-function detectPackageManager(): WorkspacePackageManager {
-  if (exists("pnpm-lock.yaml")) return "pnpm";
-  if (exists("yarn.lock")) return "yarn";
-  if (exists("package-lock.json")) return "npm";
-  return exists("package.json") ? "npm" : "unknown";
+function detectPackageManager(rootPath: string): WorkspacePackageManager {
+  if (exists(rootPath, "pnpm-lock.yaml")) return "pnpm";
+  if (exists(rootPath, "yarn.lock")) return "yarn";
+  if (exists(rootPath, "package-lock.json")) return "npm";
+  return exists(rootPath, "package.json") ? "npm" : "unknown";
 }
 
 function scriptCommand(packageManager: WorkspacePackageManager, scriptName: string) {
@@ -99,35 +119,35 @@ function scriptCommand(packageManager: WorkspacePackageManager, scriptName: stri
   return `${runner} run ${scriptName}`;
 }
 
-function detectProjectType(packageJson: PackageJson | null): WorkspaceProjectType {
+function detectProjectType(rootPath: string, packageJson: PackageJson | null): WorkspaceProjectType {
   const dependencies = {
     ...packageJson?.dependencies,
     ...packageJson?.devDependencies,
   };
 
-  const hasElectron = Boolean(dependencies.electron);
+  const hasElectron = Boolean(dependencies.electron) || exists(rootPath, "electron");
   const hasReact = Boolean(dependencies.react);
-  const hasTypeScript = Boolean(dependencies.typescript);
+  const hasTypeScript = Boolean(dependencies.typescript) || exists(rootPath, "tsconfig.json");
 
   if (hasElectron && hasReact && hasTypeScript) return "electron-react-typescript";
   if (hasElectron) return "electron";
   if (hasReact) return "react";
   if (packageJson) return "node";
-  if (exists("pyproject.toml") || exists("requirements.txt")) return "python";
+  if (exists(rootPath, "pyproject.toml") || exists(rootPath, "requirements.txt")) return "python";
 
   return "unknown";
 }
 
-function detectDocumentationPaths(readmePath?: string) {
+function detectDocumentationPaths(rootPath: string, readmePath?: string) {
   const paths: string[] = [];
 
   if (readmePath) paths.push(readmePath);
-  if (exists("docs")) paths.push("docs");
-  if (exists("Documentation")) paths.push("Documentation");
-  if (exists("CHANGELOG.md")) paths.push("CHANGELOG.md");
-  if (exists("Roadmap.md")) paths.push("Roadmap.md");
-  if (exists("prompts")) paths.push("prompts");
-  if (exists("templates")) paths.push("templates");
+  if (exists(rootPath, "docs")) paths.push("docs");
+  if (exists(rootPath, "Documentation")) paths.push("Documentation");
+  if (exists(rootPath, "CHANGELOG.md")) paths.push("CHANGELOG.md");
+  if (exists(rootPath, "Roadmap.md")) paths.push("Roadmap.md");
+  if (exists(rootPath, "prompts")) paths.push("prompts");
+  if (exists(rootPath, "templates")) paths.push("templates");
 
   return paths;
 }
@@ -147,32 +167,38 @@ function capability(
   };
 }
 
-function scanWorkspace(): WorkspaceAnalysis {
-  const packageJson = readJson<PackageJson>("package.json");
-  const workflowMetadataPath = findFirstExisting([
+function scanWorkspace(rootPathInput?: string): WorkspaceAnalysis {
+  const workspaceRoot = normalizeRoot(rootPathInput);
+  const packageJson = readJson<PackageJson>(workspaceRoot, "package.json");
+  const workflowMetadataPath = findFirstExisting(workspaceRoot, [
     ".workflowstudio/project.json",
     ".workflowstudio/metadata.json",
   ]);
-  const workflowProject = workflowMetadataPath ? readJson<{ name?: string }>(workflowMetadataPath) : null;
-  const readmePath = findFirstExisting(["README.md", "readme.md", "Readme.md"]);
-  const documentationPaths = detectDocumentationPaths(readmePath);
-  const hasGit = exists(".git");
+  const workflowProject = workflowMetadataPath
+    ? readJson<{ name?: string; version?: string; currentMilestone?: string }>(
+        workspaceRoot,
+        workflowMetadataPath,
+      )
+    : null;
+  const readmePath = findFirstExisting(workspaceRoot, ["README.md", "readme.md", "Readme.md"]);
+  const documentationPaths = detectDocumentationPaths(workspaceRoot, readmePath);
+  const hasGit = exists(workspaceRoot, ".git");
   const hasPackageJson = Boolean(packageJson);
   const hasReadme = Boolean(readmePath);
-  const hasDocs = exists("docs") || exists("Documentation");
+  const hasDocs = exists(workspaceRoot, "docs") || exists(workspaceRoot, "Documentation");
   const hasWorkflowMetadata = Boolean(workflowMetadataPath);
-  const packageManager = detectPackageManager();
-  const projectType = detectProjectType(packageJson);
+  const packageManager = detectPackageManager(workspaceRoot);
+  const projectType = detectProjectType(workspaceRoot, packageJson);
   const scripts = packageJson?.scripts ?? {};
   const packageScripts = Object.entries(scripts).map(([name, command]) => ({ name, command }));
   const buildCommand = scripts.build ? scriptCommand(packageManager, "build") : undefined;
   const devCommand = scripts.dev ? scriptCommand(packageManager, "dev") : undefined;
   const testCommand = scripts.test ? scriptCommand(packageManager, "test") : undefined;
-  const hasPackageWorkflow = exists("_packages") && exists("_backup");
-  const hasTemplates = exists("templates");
-  const hasPrompts = exists("prompts");
-  const hasElectronFolder = exists("electron");
-  const hasSourceFolder = exists("src");
+  const hasPackageWorkflow = exists(workspaceRoot, "_packages") && exists(workspaceRoot, "_backup");
+  const hasTemplates = exists(workspaceRoot, "templates");
+  const hasPrompts = exists(workspaceRoot, "prompts");
+  const hasElectronFolder = exists(workspaceRoot, "electron");
+  const hasSourceFolder = exists(workspaceRoot, "src");
   const successes: string[] = [];
   const warnings: string[] = [];
 
@@ -250,7 +276,102 @@ function scanWorkspace(): WorkspaceAnalysis {
   };
 }
 
-ipcMain.handle("workspace:scan", () => scanWorkspace());
+function runGit(rootPath: string, command: string) {
+  return execSync(`git ${command}`, {
+    cwd: rootPath,
+    encoding: "utf8",
+    stdio: ["ignore", "pipe", "pipe"],
+  }).trim();
+}
+
+function getGitStatus(rootPathInput?: string): GitStatus {
+  const rootPath = normalizeRoot(rootPathInput);
+
+  if (!exists(rootPath, ".git")) {
+    return {
+      isRepository: false,
+      branch: "Not a Git repository",
+      status: "not-repository",
+      changedFiles: [],
+      summary: "Git repository was not detected for this workspace.",
+    };
+  }
+
+  try {
+    const branch = runGit(rootPath, "rev-parse --abbrev-ref HEAD") || "unknown";
+    const porcelain = runGit(rootPath, "status --short");
+    const changedFiles = porcelain
+      ? porcelain.split(/\r?\n/).map((line) => line.trim()).filter(Boolean)
+      : [];
+    const status = changedFiles.length > 0 ? "dirty" : "clean";
+
+    return {
+      isRepository: true,
+      branch,
+      status,
+      changedFiles,
+      summary:
+        status === "clean"
+          ? `Branch ${branch} is clean.`
+          : `Branch ${branch} has ${changedFiles.length} changed file${changedFiles.length === 1 ? "" : "s"}.`,
+    };
+  } catch (error) {
+    console.warn("Unable to read Git status.", error);
+    return {
+      isRepository: true,
+      branch: "Unknown",
+      status: "dirty",
+      changedFiles: [],
+      summary: "Git is available, but status could not be read.",
+    };
+  }
+}
+
+function collectMarkdownFiles(rootPath: string, relativeFolder: string, kind: DocumentationEntry["kind"]) {
+  const folderPath = path.join(rootPath, relativeFolder);
+  if (!fs.existsSync(folderPath) || !fs.statSync(folderPath).isDirectory()) return [];
+
+  return fs
+    .readdirSync(folderPath)
+    .filter((fileName) => fileName.toLowerCase().endsWith(".md"))
+    .sort((a, b) => a.localeCompare(b))
+    .map((fileName) => ({
+      title: fileName.replace(/\.md$/i, ""),
+      path: path.join(relativeFolder, fileName),
+      kind,
+    }));
+}
+
+function listDocumentation(rootPathInput?: string): DocumentationEntry[] {
+  const rootPath = normalizeRoot(rootPathInput);
+  const entries: DocumentationEntry[] = [];
+  const readmePath = findFirstExisting(rootPath, ["README.md", "readme.md", "Readme.md"]);
+
+  if (readmePath) {
+    entries.push({ title: "README", path: readmePath, kind: "readme" });
+  }
+
+  entries.push(...collectMarkdownFiles(rootPath, "docs", "docs"));
+  entries.push(...collectMarkdownFiles(rootPath, ".workflowstudio", "metadata"));
+  entries.push(...collectMarkdownFiles(rootPath, "prompts", "prompt"));
+  entries.push(...collectMarkdownFiles(rootPath, "templates", "template"));
+
+  return entries;
+}
+
+ipcMain.handle("workspace:scan", (_event, rootPath?: string) => scanWorkspace(rootPath));
+ipcMain.handle("workspace:gitStatus", (_event, rootPath?: string) => getGitStatus(rootPath));
+ipcMain.handle("workspace:listDocumentation", (_event, rootPath?: string) => listDocumentation(rootPath));
+ipcMain.handle("workspace:openFolder", async () => {
+  const result = await dialog.showOpenDialog({
+    title: "Open Workspace Folder",
+    properties: ["openDirectory"],
+  });
+
+  if (result.canceled || result.filePaths.length === 0) return null;
+
+  return scanWorkspace(result.filePaths[0]);
+});
 
 function createWindow() {
   const mainWindow = new BrowserWindow({
