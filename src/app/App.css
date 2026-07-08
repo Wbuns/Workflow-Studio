@@ -554,3 +554,67 @@ button {
     grid-template-columns: 1fr;
   }
 }
+
+.workspace-switcher {
+  display: grid;
+  gap: 6px;
+  min-width: min(420px, 42vw);
+}
+
+.workspace-switcher label {
+  color: #93c5fd;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.workspace-switcher-controls {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.workspace-switcher select {
+  width: 100%;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  border-radius: 10px;
+  padding: 10px 12px;
+  color: #e5e7eb;
+  background: rgba(15, 23, 42, 0.92);
+}
+
+.workspace-switcher span {
+  overflow: hidden;
+  color: #94a3b8;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.secondary-button {
+  border: 1px solid rgba(148, 163, 184, 0.36);
+  border-radius: 10px;
+  padding: 10px 14px;
+  color: #e2e8f0;
+  background: rgba(30, 41, 59, 0.92);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.secondary-button:hover {
+  color: #f8fafc;
+  border-color: rgba(96, 165, 250, 0.55);
+  background: rgba(37, 99, 235, 0.18);
+}
+
+@media (max-width: 1120px) {
+  .app-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .workspace-switcher {
+    width: 100%;
+  }
+}
