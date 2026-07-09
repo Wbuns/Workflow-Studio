@@ -27,7 +27,17 @@ export function AIDevelopmentPage({ activePage, activeWorkspace }: AIDevelopment
   const [gitStatus, setGitStatus] = useState<GitStatus | null>(null);
   const [snapshots, setSnapshots] = useState<AISnapshotRecord[]>([]);
   const [statusMessage, setStatusMessage] = useState("AI Development tools are ready.");
+  const [showStatusMessage, setShowStatusMessage] = useState(true);
   const [isWorking, setIsWorking] = useState(false);
+
+  function showStatus(message: string) {
+    setStatusMessage(message);
+    setShowStatusMessage(true);
+
+    window.setTimeout(() => {
+      setShowStatusMessage(false);
+    }, 3000);
+  }
 
   const prompt = useMemo(
     () => buildContinuationPrompt(analysis, gitStatus),
@@ -51,26 +61,26 @@ export function AIDevelopmentPage({ activePage, activeWorkspace }: AIDevelopment
   useEffect(() => {
     refresh().catch((error) => {
       console.error(error);
-      setStatusMessage("Unable to load AI Development workspace data.");
+      showStatus("Unable to load AI Development workspace data.");
     });
   }, [rootPath]);
 
   async function handleCreateSnapshot() {
     if (!rootPath) {
-      setStatusMessage("Open a workspace before creating an AI snapshot.");
+      showStatus("Open a workspace before creating an AI snapshot.");
       return;
     }
 
     setIsWorking(true);
-    setStatusMessage("Creating AI snapshot...");
+    showStatus("Creating AI snapshot...");
 
     try {
       const result = await createAISnapshot(rootPath);
-      setStatusMessage(result.message);
+      showStatus(result.message);
       await refresh();
     } catch (error) {
       console.error(error);
-      setStatusMessage("AI snapshot creation failed.");
+      showStatus("AI snapshot creation failed.");
     } finally {
       setIsWorking(false);
     }
@@ -78,12 +88,12 @@ export function AIDevelopmentPage({ activePage, activeWorkspace }: AIDevelopment
 
   async function handleCopyPrompt() {
     await copyText(prompt);
-    setStatusMessage("Continuation prompt copied to clipboard.");
+    showStatus("Continuation prompt copied to clipboard.");
   }
 
   async function handleOpenSnapshotFolder() {
     const result = await openAISnapshotFolder(rootPath);
-    setStatusMessage(result.message);
+    showStatus(result.message);
   }
 
   return (
@@ -135,15 +145,17 @@ export function AIDevelopmentPage({ activePage, activeWorkspace }: AIDevelopment
             <button type="button" onClick={handleCopyPrompt} disabled={!rootPath}>
               Copy Continuation Prompt
             </button>
-            <button type="button" onClick={handleCopyPrompt} disabled={!rootPath}>
-              Export Documentation Bundle Prompt
+            <button type="button" disabled title="Coming in v1.4">
+              Export Documentation Bundle
             </button>
             <button type="button" onClick={handleOpenSnapshotFolder} disabled={!rootPath}>
               Open Snapshot Folder
             </button>
           </div>
 
-          <p className="ai-dev-message">{statusMessage}</p>
+          <p className={showStatusMessage ? "ai-dev-message visible" : "ai-dev-message"}>
+            {statusMessage}
+          </p>
         </article>
 
         <article className="module-panel ai-dev-prompt">
@@ -166,7 +178,9 @@ export function AIDevelopmentPage({ activePage, activeWorkspace }: AIDevelopment
               <div className="snapshot-history-card" key={snapshot.id}>
                 <strong>{snapshot.name}</strong>
                 <span>{new Date(snapshot.createdAt).toLocaleString()}</span>
-                <span>{formatBytes(snapshot.sizeBytes)} · {snapshot.filePath}</span>
+                <span>
+                  {formatBytes(snapshot.sizeBytes)} · {snapshot.filePath}
+                </span>
               </div>
             ))}
           </div>

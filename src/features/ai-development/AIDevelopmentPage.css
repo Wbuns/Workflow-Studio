@@ -109,3 +109,15 @@
     grid-template-columns: 1fr;
   }
 }
+.ai-dev-message {
+  opacity: 0;
+  transform: translateY(-2px);
+  transition:
+    opacity 500ms ease,
+    transform 500ms ease;
+}
+
+.ai-dev-message.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
