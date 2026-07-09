@@ -40,18 +40,6 @@ export type AISnapshotResult = {
   snapshot?: AISnapshotRecord;
 };
 
-export type AIPackageBuilderResult = {
-  ok: boolean;
-  message: string;
-  packageId?: string;
-  packagePath?: string;
-  files?: string[];
-  installCommand?: string;
-  buildCommand?: string;
-  suggestedCommitMessage?: string;
-  warnings?: string[];
-};
-
 type WorkflowStudioBridge = {
   workspace?: {
     scan?: (rootPath?: string) => Promise<WorkspaceAnalysis>;
@@ -59,7 +47,6 @@ type WorkflowStudioBridge = {
     createAISnapshot?: (rootPath?: string) => Promise<AISnapshotResult>;
     listAISnapshots?: (rootPath?: string) => Promise<AISnapshotRecord[]>;
     openAISnapshotFolder?: (rootPath?: string) => Promise<{ ok: boolean; message: string }>;
-    createAIPackage?: (input: { rootPath?: string; developerRequest: string; packageId?: string }) => Promise<AIPackageBuilderResult>;
   };
 };
 
@@ -97,24 +84,6 @@ export async function openAISnapshotFolder(rootPath?: string) {
     bridge()?.workspace?.openAISnapshotFolder?.(rootPath) ??
     Promise.resolve({ ok: false, message: "Snapshot folder backend is not available." })
   );
-}
-
-export async function createAIPackage(input: {
-  rootPath?: string;
-  developerRequest: string;
-  packageId?: string;
-}): Promise<AIPackageBuilderResult> {
-  const createPackage = bridge()?.workspace?.createAIPackage;
-
-  if (!createPackage) {
-    return {
-      ok: false,
-      message: "AI Package Builder backend is not available. Restart Workflow Studio after installing the package.",
-      warnings: ["Electron bridge method workspace.createAIPackage was not found."],
-    };
-  }
-
-  return createPackage(input);
 }
 
 export function buildContinuationPrompt(

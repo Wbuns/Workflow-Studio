@@ -5,7 +5,6 @@ import "./AIDevelopmentPage.css";
 import {
   buildContinuationPrompt,
   copyText,
-  createAIPackage,
   createAISnapshot,
   formatBytes,
   getGitStatus,
@@ -30,16 +29,6 @@ export function AIDevelopmentPage({ activePage, activeWorkspace }: AIDevelopment
   const [statusMessage, setStatusMessage] = useState("AI Development tools are ready.");
   const [showStatusMessage, setShowStatusMessage] = useState(true);
   const [isWorking, setIsWorking] = useState(false);
-  const [developerRequest, setDeveloperRequest] = useState("");
-  const [packageId, setPackageId] = useState("");
-  const [packageResult, setPackageResult] = useState<{
-    packagePath?: string;
-    installCommand?: string;
-    buildCommand?: string;
-    suggestedCommitMessage?: string;
-    files?: string[];
-    warnings?: string[];
-  } | null>(null);
 
   function showStatus(message: string) {
     setStatusMessage(message);
@@ -105,46 +94,6 @@ export function AIDevelopmentPage({ activePage, activeWorkspace }: AIDevelopment
   async function handleOpenSnapshotFolder() {
     const result = await openAISnapshotFolder(rootPath);
     showStatus(result.message);
-  }
-
-  async function handleCreatePackage() {
-    if (!rootPath) {
-      showStatus("Open a workspace before creating an AI package.");
-      return;
-    }
-
-    if (!developerRequest.trim()) {
-      showStatus("Add a Developer Request before creating an AI package.");
-      return;
-    }
-
-    setIsWorking(true);
-    setPackageResult(null);
-    showStatus("Scanning workspace changes and building package...");
-
-    try {
-      const result = await createAIPackage({
-        rootPath,
-        developerRequest,
-        packageId,
-      });
-
-      if (result.ok) {
-        setPackageResult(result);
-        setPackageId(result.packageId ?? packageId);
-        showStatus(result.message);
-        await refresh();
-        return;
-      }
-
-      setPackageResult({ warnings: result.warnings, files: result.files });
-      showStatus(result.message);
-    } catch (error) {
-      console.error(error);
-      showStatus("AI package creation failed.");
-    } finally {
-      setIsWorking(false);
-    }
   }
 
   return (
@@ -217,83 +166,6 @@ export function AIDevelopmentPage({ activePage, activeWorkspace }: AIDevelopment
           </p>
           <textarea value={prompt} readOnly />
         </article>
-      </section>
-
-
-      <section className="module-panel ai-package-builder-panel">
-        <div className="ai-package-builder-header">
-          <div>
-            <h3>AI Package Builder</h3>
-            <p>
-              Scan the active workspace, package the current Git changes, and export a standard
-              installable milestone package. If no safe replacement files are available, Workflow
-              Studio will warn instead of creating a placeholder package.
-            </p>
-          </div>
-          <button type="button" onClick={handleCreatePackage} disabled={!rootPath || isWorking}>
-            Build Package From Workspace Changes
-          </button>
-        </div>
-
-        <label className="ai-package-field">
-          <span>Package ID</span>
-          <input
-            value={packageId}
-            onChange={(event) => setPackageId(event.target.value)}
-            placeholder="workflowstudio-v1.2.4-ai-package-builder"
-          />
-        </label>
-
-        <label className="ai-package-field">
-          <span>Developer Request</span>
-          <textarea
-            value={developerRequest}
-            onChange={(event) => setDeveloperRequest(event.target.value)}
-            placeholder="Paste the milestone request here before building the package..."
-          />
-        </label>
-
-        <div className="ai-package-builder-grid">
-          <div>
-            <strong>Package rules</strong>
-            <ul>
-              <li>Uses the active workspace scan and Git changed files.</li>
-              <li>Copies replacement files into files/ with matching target paths.</li>
-              <li>Creates manifest.json and README.md automatically.</li>
-              <li>Blocks unsafe placeholder packages when no changed files are available.</li>
-            </ul>
-          </div>
-          <div>
-            <strong>Detected changed files</strong>
-            {gitStatus?.changedFiles.length ? (
-              <ul>
-                {gitStatus.changedFiles.slice(0, 8).map((file) => (
-                  <li key={file}>{file}</li>
-                ))}
-                {gitStatus.changedFiles.length > 8 && <li>+ {gitStatus.changedFiles.length - 8} more</li>}
-              </ul>
-            ) : (
-              <p>No Git changes detected yet.</p>
-            )}
-          </div>
-        </div>
-
-        {packageResult && (
-          <div className="ai-package-result">
-            {packageResult.packagePath && <p><strong>Package:</strong> {packageResult.packagePath}</p>}
-            {packageResult.installCommand && <p><strong>Install:</strong> {packageResult.installCommand}</p>}
-            {packageResult.buildCommand && <p><strong>Build:</strong> {packageResult.buildCommand}</p>}
-            {packageResult.suggestedCommitMessage && (
-              <p><strong>Commit:</strong> {packageResult.suggestedCommitMessage}</p>
-            )}
-            {packageResult.files?.length ? (
-              <p><strong>Files:</strong> {packageResult.files.join(", ")}</p>
-            ) : null}
-            {packageResult.warnings?.length ? (
-              <p><strong>Warnings:</strong> {packageResult.warnings.join(" ")}</p>
-            ) : null}
-          </div>
-        )}
       </section>
 
       <section className="module-panel">

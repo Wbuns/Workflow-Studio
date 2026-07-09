@@ -119,6 +119,24 @@ type AISnapshotRecord = {
   sizeBytes?: number;
 };
 
+type AIPackageBuilderInput = {
+  rootPath?: string;
+  developerRequest: string;
+  packageId?: string;
+};
+
+type AIPackageBuilderResult = {
+  ok: boolean;
+  message: string;
+  packageId?: string;
+  packagePath?: string;
+  files?: string[];
+  installCommand?: string;
+  buildCommand?: string;
+  suggestedCommitMessage?: string;
+  warnings?: string[];
+};
+
 function normalizeRoot(rootPath?: string) {
   if (!rootPath || rootPath.trim() === ".") return defaultWorkspaceRoot;
   return path.resolve(rootPath);
@@ -780,6 +798,281 @@ function createAISnapshot(rootPathInput?: string) {
   };
 }
 
+
+function sanitizePackageId(value: string, fallback: string) {
+  const normalized = (value.trim() || fallback)
+    .toLowerCase()
+    .replace(/[^a-z0-9._-]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+
+  return normalized || fallback;
+}
+
+function parseGitChangedFiles(rootPath: string) {
+  const porcelain = runGit(rootPath, "status --short");
+
+  if (!porcelain) return [];
+
+  return porcelain
+    .split(/\r?\n/)
+    .map((line) => ({ status: line.slice(0, 2), filePath: line.slice(3).trim() }))
+    .map((entry) => ({
+      ...entry,
+      filePath: entry.filePath.includes(" -> ")
+        ? entry.filePath.split(" -> ").at(-1)?.trim() ?? entry.filePath
+        : entry.filePath,
+    }))
+    .filter((entry) => Boolean(entry.filePath));
+}
+
+function isSafePackageReplacement(relativePath: string) {
+  const normalized = relativePath.replace(/\\/g, "/");
+  const parts = normalized.split("/");
+
+  if (path.isAbsolute(relativePath) || normalized.includes("..")) return false;
+
+  if (
+    parts.some((part) =>
+      [".git", "node_modules", "dist", "_backup", ".vite", "coverage", "ai-snapshots"].includes(part),
+    )
+  ) {
+    return false;
+  }
+
+  if (normalized.startsWith("_packages/")) return false;
+  if (normalized === ".workflowstudio/ai-snapshots.json") return false;
+
+  return /\.(tsx?|jsx?|json|md|css|scss|html|ps1|yml|yaml|txt)$/i.test(normalized);
+}
+
+function packageReadme(input: {
+  packageId: string;
+  projectName: string;
+  developerRequest: string;
+  files: string[];
+  installCommand: string;
+  buildCommand: string;
+  suggestedCommitMessage: string;
+  warnings: string[];
+}) {
+  const fileList = input.files.map((file) => `- ${file}`).join("\n");
+  const warningList = input.warnings.length
+    ? input.warnings.map((warning) => `- ${warning}`).join("\n")
+    : "- No warnings.";
+
+  return `# ${input.packageId}
+
+AI Package Builder export for ${input.projectName}.
+
+## Developer Request
+
+${input.developerRequest.trim()}
+
+## Included Replacement Files
+
+${fileList}
+
+## Suggested Install Command
+
+\`\`\`powershell
+${input.installCommand}
+\`\`\`
+
+## Suggested Build Command
+
+\`\`\`powershell
+${input.buildCommand}
+\`\`\`
+
+## Suggested Git Commit Message
+
+\`\`\`text
+${input.suggestedCommitMessage}
+\`\`\`
+
+## Manual Test Checklist
+
+- Install the package with the standard Workflow Studio package installer.
+- Run the suggested build command.
+- Open Workflow Studio and confirm the changed feature still loads.
+- Confirm existing Dashboard, Projects, Packages, Documentation, AI, AI Development, Git, Templates, and Settings pages still render.
+- Review the changed files before committing.
+
+## Validation Notes
+
+${warningList}
+`;
+}
+
+function validateGeneratedPackage(packagePath: string) {
+  const manifestPath = path.join(packagePath, "manifest.json");
+  const readmePath = path.join(packagePath, "README.md");
+  const warnings: string[] = [];
+
+  if (!fs.existsSync(manifestPath)) warnings.push("manifest.json is missing.");
+  if (!fs.existsSync(readmePath)) warnings.push("README.md is missing.");
+
+  if (!fs.existsSync(manifestPath)) return warnings;
+
+  const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8")) as {
+    files?: Array<{ source?: string; target?: string }>;
+  };
+
+  if (!manifest.files?.length) warnings.push("manifest files array is empty.");
+
+  for (const file of manifest.files ?? []) {
+    if (!file.source || !file.target) {
+      warnings.push("A manifest file entry is missing source or target.");
+      continue;
+    }
+
+    if (!fs.existsSync(path.join(packagePath, file.source))) {
+      warnings.push(`Source file is missing: ${file.source}.`);
+    }
+  }
+
+  return warnings;
+}
+
+function createAIPackage(input: AIPackageBuilderInput): AIPackageBuilderResult {
+  const rootPath = normalizeRoot(input.rootPath);
+  const developerRequest = input.developerRequest.trim();
+  const warnings: string[] = [];
+
+  if (!developerRequest) {
+    return {
+      ok: false,
+      message: "Developer Request is required before building a package.",
+      warnings: ["No Developer Request was provided."],
+    };
+  }
+
+  if (!exists(rootPath, ".git")) {
+    return {
+      ok: false,
+      message: "AI Package Builder needs a Git workspace so it can detect changed files safely.",
+      warnings: ["Git repository was not detected."],
+    };
+  }
+
+  const analysis = scanWorkspace(rootPath);
+  const rawChanges = parseGitChangedFiles(rootPath);
+  const safeChanges = rawChanges
+    .filter((entry) => !entry.status.includes("D"))
+    .map((entry) => entry.filePath)
+    .filter((filePath) => isSafePackageReplacement(filePath))
+    .filter((filePath) => fs.existsSync(path.join(rootPath, filePath)) && fs.statSync(path.join(rootPath, filePath)).isFile())
+    .sort((a, b) => a.localeCompare(b));
+
+  const skippedChanges = rawChanges
+    .map((entry) => entry.filePath)
+    .filter((filePath) => !safeChanges.includes(filePath));
+
+  if (skippedChanges.length) {
+    warnings.push(`Skipped ${skippedChanges.length} changed file${skippedChanges.length === 1 ? "" : "s"} that cannot be safely packaged as replacement files.`);
+  }
+
+  if (!safeChanges.length) {
+    return {
+      ok: false,
+      message: "No safe changed replacement files were found, so no package was created.",
+      files: [],
+      warnings: [
+        ...warnings,
+        "Make the milestone code changes first, then run AI Package Builder again.",
+      ],
+    };
+  }
+
+  const fallbackId = `${analysis.projectName}-ai-package-${safeTimestamp()}`;
+  const packageId = sanitizePackageId(input.packageId ?? "", fallbackId);
+  const packagePath = path.join(rootPath, "_packages", packageId);
+  const filesRoot = path.join(packagePath, "files");
+  const suggestedCommitMessage = developerRequest.split(/\r?\n/)[0]?.replace(/^#+\s*/, "").slice(0, 72) || `Apply ${packageId}`;
+  const buildCommand = analysis.buildCommand ?? "npm run build";
+  const installCommand = `.\\tools\\package\\install-package.ps1 "${packagePath}"`;
+
+  fs.rmSync(packagePath, { recursive: true, force: true });
+  fs.mkdirSync(filesRoot, { recursive: true });
+
+  for (const relativePath of safeChanges) {
+    const source = path.join(rootPath, relativePath);
+    const target = path.join(filesRoot, relativePath);
+    fs.mkdirSync(path.dirname(target), { recursive: true });
+    fs.copyFileSync(source, target);
+  }
+
+  const manifest = {
+    packageId,
+    name: packageId,
+    version: "1.0.0",
+    targetProject: analysis.projectName,
+    description: `AI Package Builder export for ${analysis.projectName}.`,
+    generatedBy: "Workflow Studio AI Package Builder",
+    generatedAt: new Date().toISOString(),
+    developerRequest,
+    files: safeChanges.map((relativePath) => ({
+      source: path.join("files", relativePath).replace(/\\/g, "/"),
+      target: relativePath.replace(/\\/g, "/"),
+    })),
+    suggestedInstallCommand: installCommand,
+    suggestedBuildCommand: buildCommand,
+    suggestedCommitMessage,
+    manualTestChecklist: [
+      "Install the package with the standard Workflow Studio installer.",
+      "Run the suggested build command.",
+      "Open Workflow Studio and confirm the changed feature still loads.",
+      "Review the changed files before committing.",
+    ],
+    validation: {
+      requiresChangedFiles: true,
+      skippedChanges,
+      warnings,
+    },
+  };
+
+  writeJson(path.join(packagePath, "manifest.json"), manifest);
+  fs.writeFileSync(
+    path.join(packagePath, "README.md"),
+    packageReadme({
+      packageId,
+      projectName: analysis.projectName,
+      developerRequest,
+      files: safeChanges,
+      installCommand,
+      buildCommand,
+      suggestedCommitMessage,
+      warnings,
+    }),
+    "utf8",
+  );
+
+  const validationWarnings = validateGeneratedPackage(packagePath);
+
+  if (validationWarnings.length) {
+    return {
+      ok: false,
+      message: "Package structure validation failed.",
+      packageId,
+      packagePath,
+      files: safeChanges,
+      warnings: [...warnings, ...validationWarnings],
+    };
+  }
+
+  return {
+    ok: true,
+    message: `Created installable package: ${packageId}`,
+    packageId,
+    packagePath,
+    files: safeChanges,
+    installCommand,
+    buildCommand,
+    suggestedCommitMessage,
+    warnings,
+  };
+}
+
 async function openAISnapshotFolder(rootPathInput?: string): Promise<OpenPathResult> {
   const rootPath = normalizeRoot(rootPathInput);
   const folder = snapshotRoot(rootPath);
@@ -800,6 +1093,7 @@ ipcMain.handle("workspace:listTemplates", (_event, rootPath?: string) => listTem
 ipcMain.handle("workspace:createAISnapshot", (_event, rootPath?: string) => createAISnapshot(rootPath));
 ipcMain.handle("workspace:listAISnapshots", (_event, rootPath?: string) => listAISnapshots(rootPath));
 ipcMain.handle("workspace:openAISnapshotFolder", (_event, rootPath?: string) => openAISnapshotFolder(rootPath));
+ipcMain.handle("workspace:createAIPackage", (_event, input: AIPackageBuilderInput) => createAIPackage(input));
 ipcMain.handle("workspace:openPath", (_event, rootPath: string | undefined, relativePath: string) =>
   openWorkspacePath(rootPath, relativePath),
 );

@@ -1,0 +1,9 @@
+{
+  "packageId": "{{PACKAGE_ID}}",
+  "name": "{{NAME}}",
+  "version": "{{VERSION}}",
+  "targetProject": "Workflow Studio",
+  "description": "{{DESCRIPTION}}",
+  "files": [],
+  "suggestedCommitMessage": "{{SUGGESTED_COMMIT_MESSAGE}}"
+}
