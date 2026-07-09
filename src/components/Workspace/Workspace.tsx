@@ -1,3 +1,4 @@
+import { AIDevelopmentPage } from "../../features/ai-development/AIDevelopmentPage";
 import { AIPage } from "../../features/ai/AIPage";
 import { DashboardPage } from "../../features/dashboard/DashboardPage";
 import { DocumentationPage } from "../../features/documentation/DocumentationPage";
@@ -30,6 +31,9 @@ export function Workspace({ activePage, activeWorkspace }: WorkspaceProps) {
         <DocumentationPage activePage={activePage} rootPath={rootPath} />
       )}
       {activePage.id === "ai" && <AIPage activePage={activePage} rootPath={rootPath} />}
+      {activePage.id === "ai-development" && (
+        <AIDevelopmentPage activePage={activePage} activeWorkspace={activeWorkspace} />
+      )}
       {activePage.id === "git" && <GitPage activePage={activePage} rootPath={rootPath} />}
       {activePage.id === "templates" && (
         <TemplatesPage activePage={activePage} rootPath={rootPath} />

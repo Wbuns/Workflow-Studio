@@ -31,6 +31,10 @@ function readJson(rootPath, relativePath) {
         return null;
     }
 }
+function writeJson(filePath, value) {
+    fs.mkdirSync(path.dirname(filePath), { recursive: true });
+    fs.writeFileSync(filePath, `${JSON.stringify(value, null, 2)}\n`, "utf8");
+}
 function detectPackageManager(rootPath, applicationRootPath = rootPath) {
     if (fs.existsSync(path.join(applicationRootPath, "pnpm-lock.yaml")) || exists(rootPath, "pnpm-lock.yaml"))
         return "pnpm";
@@ -427,11 +431,166 @@ function listDocumentation(rootPathInput) {
     entries.push(...collectMarkdownFiles(rootPath, "templates", "template"));
     return entries;
 }
+function safeTimestamp() {
+    return new Date().toISOString().replace(/[:.]/g, "-");
+}
+function snapshotRoot(rootPath) {
+    return path.join(rootPath, ".workflowstudio", "ai-snapshots");
+}
+function snapshotHistoryPath(rootPath) {
+    return path.join(rootPath, ".workflowstudio", "ai-snapshots.json");
+}
+function listAISnapshots(rootPathInput) {
+    const rootPath = normalizeRoot(rootPathInput);
+    const historyFile = snapshotHistoryPath(rootPath);
+    if (!fs.existsSync(historyFile))
+        return [];
+    try {
+        const history = JSON.parse(fs.readFileSync(historyFile, "utf8"));
+        return (history.snapshots ?? []).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    }
+    catch (error) {
+        console.warn("Unable to read AI snapshot history.", error);
+        return [];
+    }
+}
+function shouldExclude(relativePath) {
+    const normalized = relativePath.replace(/\\/g, "/");
+    const parts = normalized.split("/");
+    if (parts.some((part) => ["node_modules", "dist", ".git", "_backup", ".vite", "coverage"].includes(part))) {
+        return true;
+    }
+    return /(^|\/).+\.log$/i.test(normalized);
+}
+function copyIfExists(workspaceRoot, stagingRoot, relativePath) {
+    const source = path.join(workspaceRoot, relativePath);
+    const target = path.join(stagingRoot, relativePath);
+    if (!fs.existsSync(source))
+        return false;
+    const stat = fs.statSync(source);
+    if (stat.isDirectory()) {
+        fs.cpSync(source, target, {
+            recursive: true,
+            filter: (sourcePath) => {
+                const relative = path.relative(workspaceRoot, sourcePath);
+                return !shouldExclude(relative);
+            },
+        });
+        return true;
+    }
+    if (stat.isFile() && !shouldExclude(relativePath)) {
+        fs.mkdirSync(path.dirname(target), { recursive: true });
+        fs.copyFileSync(source, target);
+        return true;
+    }
+    return false;
+}
+function shellEscapePowerShell(value) {
+    return `'${value.replace(/'/g, "''")}'`;
+}
+function compressFolder(sourceFolder, destinationZip) {
+    if (fs.existsSync(destinationZip))
+        fs.rmSync(destinationZip, { force: true });
+    const sourceGlob = path.join(sourceFolder, "*");
+    const command = [
+        "powershell",
+        "-NoProfile",
+        "-Command",
+        `Compress-Archive -Path ${shellEscapePowerShell(sourceGlob)} -DestinationPath ${shellEscapePowerShell(destinationZip)} -Force`,
+    ].join(" ");
+    execSync(command, { stdio: "pipe" });
+}
+function createAISnapshot(rootPathInput) {
+    const rootPath = normalizeRoot(rootPathInput);
+    if (!fs.existsSync(rootPath) || !fs.statSync(rootPath).isDirectory()) {
+        return { ok: false, message: "Workspace folder does not exist." };
+    }
+    const analysis = scanWorkspace(rootPath);
+    const timestamp = safeTimestamp();
+    const snapshotName = `${analysis.projectName || path.basename(rootPath)}-AI-Snapshot-${timestamp}`.replace(/[^a-z0-9._-]+/gi, "-");
+    const outputFolder = snapshotRoot(rootPath);
+    const stagingFolder = path.join(outputFolder, "_staging", snapshotName);
+    const destinationZip = path.join(outputFolder, `${snapshotName}.zip`);
+    const includedRoots = [];
+    fs.rmSync(stagingFolder, { recursive: true, force: true });
+    fs.mkdirSync(stagingFolder, { recursive: true });
+    fs.mkdirSync(outputFolder, { recursive: true });
+    const candidates = [
+        "docs",
+        "Documentation",
+        "prompts",
+        "templates",
+        "tools",
+        "src",
+        "electron",
+        "README.md",
+        "readme.md",
+        "package.json",
+        "package-lock.json",
+        "tsconfig.json",
+        "tsconfig.app.json",
+        "tsconfig.electron.json",
+        "vite.config.ts",
+        ".gitignore",
+        ".workflowstudio/project.json",
+        ".workflowstudio/metadata.json",
+    ];
+    if (analysis.applicationRootPath && analysis.applicationRootPath !== rootPath) {
+        const appRelative = path.relative(rootPath, analysis.applicationRootPath);
+        candidates.push(path.join(appRelative, "src"), path.join(appRelative, "electron"), path.join(appRelative, "package.json"), path.join(appRelative, "tsconfig.json"), path.join(appRelative, "tsconfig.app.json"), path.join(appRelative, "vite.config.ts"));
+    }
+    for (const relativePath of Array.from(new Set(candidates))) {
+        if (copyIfExists(rootPath, stagingFolder, relativePath)) {
+            includedRoots.push(relativePath);
+        }
+    }
+    writeJson(path.join(stagingFolder, "AI_SNAPSHOT_MANIFEST.json"), {
+        schemaVersion: "1.0",
+        createdAt: new Date().toISOString(),
+        projectName: analysis.projectName,
+        rootPath,
+        includedRoots,
+        excludedPatterns: ["node_modules", "dist", ".git", "_backup", ".vite", "coverage", "*.log"],
+        health: analysis.health,
+    });
+    compressFolder(stagingFolder, destinationZip);
+    fs.rmSync(stagingFolder, { recursive: true, force: true });
+    const snapshot = {
+        id: snapshotName,
+        name: `${snapshotName}.zip`,
+        filePath: destinationZip,
+        createdAt: new Date().toISOString(),
+        rootPath,
+        includedRoots,
+        excludedPatterns: ["node_modules", "dist", ".git", "_backup", ".vite", "coverage", "*.log"],
+        sizeBytes: fs.existsSync(destinationZip) ? fs.statSync(destinationZip).size : undefined,
+    };
+    const snapshots = [snapshot, ...listAISnapshots(rootPath).filter((entry) => entry.id !== snapshot.id)].slice(0, 25);
+    writeJson(snapshotHistoryPath(rootPath), { snapshots });
+    return {
+        ok: true,
+        message: `Created AI snapshot: ${snapshot.name}`,
+        snapshot,
+    };
+}
+async function openAISnapshotFolder(rootPathInput) {
+    const rootPath = normalizeRoot(rootPathInput);
+    const folder = snapshotRoot(rootPath);
+    fs.mkdirSync(folder, { recursive: true });
+    const result = await shell.openPath(folder);
+    return {
+        ok: result.length === 0,
+        message: result.length === 0 ? "Opened AI snapshot folder." : result,
+    };
+}
 ipcMain.handle("workspace:scan", (_event, rootPath) => scanWorkspace(rootPath));
 ipcMain.handle("workspace:gitStatus", (_event, rootPath) => getGitStatus(rootPath));
 ipcMain.handle("workspace:listDocumentation", (_event, rootPath) => listDocumentation(rootPath));
 ipcMain.handle("workspace:listPackages", (_event, rootPath) => listPackages(rootPath));
 ipcMain.handle("workspace:listTemplates", (_event, rootPath) => listTemplates(rootPath));
+ipcMain.handle("workspace:createAISnapshot", (_event, rootPath) => createAISnapshot(rootPath));
+ipcMain.handle("workspace:listAISnapshots", (_event, rootPath) => listAISnapshots(rootPath));
+ipcMain.handle("workspace:openAISnapshotFolder", (_event, rootPath) => openAISnapshotFolder(rootPath));
 ipcMain.handle("workspace:openPath", (_event, rootPath, relativePath) => openWorkspacePath(rootPath, relativePath));
 ipcMain.handle("workspace:openFolder", async () => {
     const result = await dialog.showOpenDialog({

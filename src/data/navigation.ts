@@ -47,6 +47,15 @@ export const navigationItems: NavigationItem[] = [
     actionLabel: "Generate Context",
   },
   {
+    id: "ai-development",
+    label: "AI Development",
+    eyebrow: "AI Development Tools",
+    title: "AI Development",
+    description:
+      "Create AI-ready snapshots, continuation prompts, documentation bundles, and snapshot history for the active workspace.",
+    actionLabel: "Create Snapshot",
+  },
+  {
     id: "git",
     label: "Git",
     eyebrow: "Source Control",

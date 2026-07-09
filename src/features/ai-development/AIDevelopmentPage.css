@@ -1,0 +1,111 @@
+.ai-development-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(320px, 0.95fr);
+  gap: 18px;
+  margin-top: 18px;
+}
+
+.ai-dev-status-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.ai-dev-status-card {
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 14px;
+  padding: 14px;
+  background: rgba(2, 6, 23, 0.34);
+}
+
+.ai-dev-status-card span {
+  display: block;
+  color: #94a3b8;
+  font-size: 12px;
+  margin-bottom: 6px;
+}
+
+.ai-dev-status-card strong {
+  color: #f8fafc;
+  overflow-wrap: anywhere;
+}
+
+.ai-dev-actions {
+  display: grid;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.ai-dev-actions button {
+  border: 1px solid rgba(96, 165, 250, 0.28);
+  border-radius: 10px;
+  padding: 12px;
+  color: #bfdbfe;
+  background: rgba(37, 99, 235, 0.14);
+  cursor: pointer;
+  text-align: left;
+}
+
+.ai-dev-actions button:hover:not(:disabled) {
+  background: rgba(37, 99, 235, 0.24);
+}
+
+.ai-dev-actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.ai-dev-message {
+  margin: 14px 0 0;
+  color: #cbd5e1;
+  line-height: 1.55;
+}
+
+.ai-dev-prompt textarea {
+  width: 100%;
+  min-height: 360px;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  border-radius: 14px;
+  padding: 16px;
+  color: #e5e7eb;
+  background: rgba(2, 6, 23, 0.62);
+  font: 13px/1.55 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  resize: vertical;
+}
+
+.snapshot-history-list {
+  display: grid;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.snapshot-history-card {
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 14px;
+  padding: 14px;
+  background: rgba(2, 6, 23, 0.34);
+}
+
+.snapshot-history-card strong,
+.snapshot-history-card span {
+  display: block;
+}
+
+.snapshot-history-card strong {
+  color: #f8fafc;
+}
+
+.snapshot-history-card span {
+  margin-top: 6px;
+  color: #94a3b8;
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 1120px) {
+  .ai-development-layout,
+  .ai-dev-status-grid {
+    grid-template-columns: 1fr;
+  }
+}
