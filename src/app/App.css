@@ -841,3 +841,12 @@ button {
 .workspace-command-copy {
   min-width: 72px;
 }
+
+.workspace-command-actions { display: flex; gap: 0.5rem; align-items: center; }
+.command-console { margin-top: 1rem; border: 1px solid var(--border-color, #334155); border-radius: 0.75rem; overflow: hidden; background: #020617; }
+.command-console-heading { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 0.85rem 1rem; border-bottom: 1px solid #1e293b; }
+.command-console-heading h4, .command-console-heading p { margin: 0; }
+.command-console pre { margin: 0; padding: 1rem; min-height: 10rem; max-height: 24rem; overflow: auto; white-space: pre-wrap; word-break: break-word; font-size: 0.82rem; }
+.command-console pre span { display: inline; }
+.command-output-stderr { color: #fca5a5; }
+.command-output-system { color: #93c5fd; }

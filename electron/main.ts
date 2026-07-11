@@ -2,7 +2,7 @@ import { app, BrowserWindow, Menu, ipcMain, dialog, shell } from "electron";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { execSync } from "node:child_process";
+import { execSync, spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -49,6 +49,107 @@ type WorkspaceCommand = {
   interactive?: boolean;
 };
 
+
+
+
+type WorkspaceCommandExecutionStatus = "running" | "completed" | "failed" | "cancelled";
+
+type WorkspaceCommandExecution = {
+  executionId: string;
+  commandId: string;
+  label: string;
+  command: string;
+  status: WorkspaceCommandExecutionStatus;
+  startedAt: string;
+  finishedAt?: string;
+  exitCode?: number;
+  message?: string;
+};
+
+type RunningWorkspaceCommand = {
+  child: ChildProcessWithoutNullStreams;
+  execution: WorkspaceCommandExecution;
+};
+
+const runningWorkspaceCommands = new Map<string, RunningWorkspaceCommand>();
+const allowedExecutables = new Set(["npm", "npm.cmd", "pnpm", "pnpm.cmd", "yarn", "yarn.cmd", "pio", "pio.exe", "platformio", "platformio.exe", "python", "python.exe", "py", "py.exe", "cargo", "cargo.exe", "cmake", "cmake.exe"]);
+
+function tokenizeCommand(command: string): string[] {
+  const tokens = command.match(/(?:[^\s"]+|"[^"]*")+/g) ?? [];
+  return tokens.map((token) => token.startsWith('"') && token.endsWith('"') ? token.slice(1, -1) : token);
+}
+
+function executableForPlatform(executable: string): string {
+  if (process.platform !== "win32") return executable;
+  if (["npm", "pnpm", "yarn"].includes(executable)) return `${executable}.cmd`;
+  return executable;
+}
+
+function emitCommandOutput(target: Electron.WebContents, executionId: string, stream: "stdout" | "stderr" | "system", text: string) {
+  target.send("workspace:commandOutput", { executionId, stream, text, timestamp: new Date().toISOString() });
+}
+
+function resolveCommandWorkingDirectory(rootPath: string, command: WorkspaceCommand): string {
+  const candidate = path.resolve(rootPath, command.workingDirectory ?? ".");
+  const relative = path.relative(rootPath, candidate);
+  if (relative.startsWith("..") || path.isAbsolute(relative)) throw new Error("Command working directory is outside the workspace.");
+  return candidate;
+}
+
+function runWorkspaceCommand(target: Electron.WebContents, rootPathInput: string | undefined, commandId: string): WorkspaceCommandExecution {
+  const rootPath = normalizeRoot(rootPathInput);
+  const analysis = scanWorkspace(rootPath);
+  const command = analysis.workspaceCommands.find((entry) => entry.id === commandId);
+  if (!command) throw new Error("Workspace command is no longer available. Run project analysis and try again.");
+  if (command.interactive) throw new Error("Interactive commands are not enabled in v1.3.2.");
+  if (command.destructive) throw new Error("Device-changing and destructive commands require a future permission milestone.");
+
+  const tokens = tokenizeCommand(command.command);
+  if (tokens.length === 0) throw new Error("Command is empty.");
+  const executable = executableForPlatform(tokens[0]);
+  if (!allowedExecutables.has(executable.toLowerCase())) throw new Error(`Executable is not approved: ${tokens[0]}`);
+
+  const executionId = `command-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const execution: WorkspaceCommandExecution = {
+    executionId,
+    commandId: command.id,
+    label: command.label,
+    command: command.command,
+    status: "running",
+    startedAt: new Date().toISOString(),
+  };
+  const child = spawn(executable, tokens.slice(1), {
+    cwd: resolveCommandWorkingDirectory(rootPath, command),
+    env: { ...process.env, FORCE_COLOR: "0", NO_COLOR: "1" },
+    shell: false,
+    windowsHide: true,
+  });
+
+  runningWorkspaceCommands.set(executionId, { child, execution });
+  emitCommandOutput(target, executionId, "system", `> ${command.command}\n`);
+  child.stdout.on("data", (chunk: Buffer) => emitCommandOutput(target, executionId, "stdout", chunk.toString()));
+  child.stderr.on("data", (chunk: Buffer) => emitCommandOutput(target, executionId, "stderr", chunk.toString()));
+  child.on("error", (error) => emitCommandOutput(target, executionId, "stderr", `${error.message}\n`));
+  child.on("close", (code, signal) => {
+    const running = runningWorkspaceCommands.get(executionId);
+    if (!running) return;
+    if (running.execution.status !== "cancelled") running.execution.status = code === 0 ? "completed" : "failed";
+    running.execution.exitCode = code ?? undefined;
+    running.execution.finishedAt = new Date().toISOString();
+    running.execution.message = signal ? `Stopped by ${signal}.` : code === 0 ? "Command completed successfully." : `Command exited with code ${code ?? "unknown"}.`;
+    emitCommandOutput(target, executionId, "system", `\n${running.execution.message}\n`);
+    runningWorkspaceCommands.delete(executionId);
+  });
+  return execution;
+}
+
+function cancelWorkspaceCommand(executionId: string) {
+  const running = runningWorkspaceCommands.get(executionId);
+  if (!running) return { ok: false, message: "Command is not running." };
+  running.execution.status = "cancelled";
+  const stopped = running.child.kill();
+  return { ok: stopped, message: stopped ? "Cancellation requested." : "Unable to stop command." };
+}
 
 type EmbeddedWorkspaceAnalysis = {
   detected: boolean;
@@ -1007,6 +1108,11 @@ async function openAISnapshotFolder(rootPathInput?: string): Promise<OpenPathRes
   };
 }
 
+
+ipcMain.handle("workspace:runCommand", (event, rootPath: string | undefined, commandId: string) =>
+  runWorkspaceCommand(event.sender, rootPath, commandId),
+);
+ipcMain.handle("workspace:cancelCommand", (_event, executionId: string) => cancelWorkspaceCommand(executionId));
 ipcMain.handle("workspace:scan", (_event, rootPath?: string) => scanWorkspace(rootPath));
 ipcMain.handle("workspace:gitStatus", (_event, rootPath?: string) => getGitStatus(rootPath));
 ipcMain.handle("workspace:listDocumentation", (_event, rootPath?: string) => listDocumentation(rootPath));

@@ -1,5 +1,5 @@
-import { useState } from "react";
-import type { WorkspaceCommand } from "../../types/workspaceAnalysis";
+import { useEffect, useState } from "react";
+import type { WorkspaceCommand, WorkspaceCommandExecution, WorkspaceCommandOutput } from "../../types/workspaceAnalysis";
 import type { DashboardSummary } from "./DashboardTypes";
 
 type DashboardWidgetsProps = { summary: DashboardSummary };
@@ -13,14 +13,12 @@ function CommandRow({ label, command }: { label: string; command?: string }) {
   return <div><dt>{label}</dt><dd>{command ?? "Not available"}</dd></div>;
 }
 
-function WorkspaceCommandCard({ command, onCopy, copiedId }: { command: WorkspaceCommand; onCopy: (command: WorkspaceCommand) => void; copiedId?: string }) {
+function WorkspaceCommandCard({ command, onCopy, onRun, copiedId, runningId }: { command: WorkspaceCommand; onCopy: (command: WorkspaceCommand) => void; onRun: (command: WorkspaceCommand) => void; copiedId?: string; runningId?: string }) {
   return (
     <article className="workspace-command-card">
       <div className="workspace-command-heading">
         <div><span className="workspace-command-category">{command.category}</span><h4>{command.label}</h4></div>
-        <button className="secondary-button workspace-command-copy" type="button" onClick={() => onCopy(command)}>
-          {copiedId === command.id ? "Copied" : "Copy"}
-        </button>
+        <div className="workspace-command-actions"><button className="secondary-button workspace-command-copy" type="button" onClick={() => onCopy(command)}>{copiedId === command.id ? "Copied" : "Copy"}</button><button className="primary-button" type="button" disabled={Boolean(command.interactive || command.destructive || runningId)} title={command.interactive ? "Interactive execution is not enabled yet." : command.destructive ? "Device-changing commands require a future permission milestone." : undefined} onClick={() => onRun(command)}>{runningId === command.id ? "Running" : "Run"}</button></div>
       </div>
       <code>{command.command}</code>
       <p>{command.description}</p>
@@ -36,10 +34,45 @@ function WorkspaceCommandCard({ command, onCopy, copiedId }: { command: Workspac
 
 export function DashboardWidgets({ summary }: DashboardWidgetsProps) {
   const [copiedId, setCopiedId] = useState<string>();
+  const [execution, setExecution] = useState<WorkspaceCommandExecution>();
+  const [output, setOutput] = useState<WorkspaceCommandOutput[]>([]);
+  const [executionError, setExecutionError] = useState<string>();
   const enabledCapabilities = summary.capabilities.filter((capability) => capability.enabled);
   const disabledCapabilities = summary.capabilities.filter((capability) => !capability.enabled);
   const embedded = summary.workspaceAnalysis.embedded;
   const commands = summary.workspaceAnalysis.workspaceCommands;
+
+  async function runCommand(command: WorkspaceCommand) {
+    const bridge = window.workflowStudio?.workspace;
+    if (!bridge?.runCommand) {
+      setExecutionError("Native command execution bridge is unavailable.");
+      return;
+    }
+    setOutput([]);
+    setExecutionError(undefined);
+    try {
+      const next = await bridge.runCommand(summary.rootPath, command.id);
+      setExecution(next);
+    } catch (error) {
+      setExecutionError(error instanceof Error ? error.message : String(error));
+    }
+  }
+
+  async function cancelCommand() {
+    if (!execution || !window.workflowStudio?.workspace?.cancelCommand) return;
+    await window.workflowStudio.workspace.cancelCommand(execution.executionId);
+    setExecution((current) => current ? { ...current, status: "cancelled" } : current);
+  }
+
+  useEffect(() => {
+    const unsubscribe = window.workflowStudio?.workspace?.onCommandOutput?.((entry) => {
+      setOutput((current) => current.length >= 500 ? [...current.slice(-450), entry] : [...current, entry]);
+      if (entry.stream === "system" && /completed successfully|exited with code|Stopped by/.test(entry.text)) {
+        setExecution((current) => current ? { ...current, status: entry.text.includes("completed successfully") ? "completed" : current.status === "cancelled" ? "cancelled" : "failed" } : current);
+      }
+    });
+    return unsubscribe;
+  }, []);
 
   async function copyCommand(command: WorkspaceCommand) {
     try {
@@ -82,8 +115,9 @@ export function DashboardWidgets({ summary }: DashboardWidgetsProps) {
         <article className="detail-panel workspace-commands-panel">
           <div className="section-heading"><div><h3>Workspace Commands</h3><p>Detected commands are copy-only. Native execution is not enabled.</p></div></div>
           <div className="workspace-command-list">
-            {commands.map((command) => <WorkspaceCommandCard key={command.id} command={command} onCopy={copyCommand} copiedId={copiedId} />)}
+            {commands.map((command) => <WorkspaceCommandCard key={command.id} command={command} onCopy={copyCommand} onRun={runCommand} copiedId={copiedId} runningId={execution?.status === "running" ? execution.commandId : undefined} />)}
           </div>
+          {(execution || executionError || output.length > 0) && <section className="command-console" aria-live="polite"><div className="command-console-heading"><div><h4>Command Output</h4><p>{execution ? `${execution.label} — ${execution.status}` : executionError}</p></div>{execution?.status === "running" && <button className="secondary-button" type="button" onClick={cancelCommand}>Cancel</button>}</div><pre>{output.map((entry, index) => <span className={`command-output-${entry.stream}`} key={`${entry.timestamp}-${index}`}>{entry.text}</span>)}</pre></section>}
         </article>
 
         <article className="detail-panel capabilities-panel"><h3>Enabled Capabilities</h3><div className="capability-list">{enabledCapabilities.map((capability) => <span className="capability-pill enabled" key={capability.id} title={capability.detail}>✓ {capability.label}</span>)}</div></article>

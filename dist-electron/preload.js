@@ -1,6 +1,6 @@
 import { contextBridge, ipcRenderer } from "electron";
 contextBridge.exposeInMainWorld("workflowStudio", {
-    version: "1.3.0",
+    version: "1.3.2",
     platform: process.platform,
     workspace: {
         scan: (rootPath) => ipcRenderer.invoke("workspace:scan", rootPath),
@@ -14,6 +14,13 @@ contextBridge.exposeInMainWorld("workflowStudio", {
         listAISnapshots: (rootPath) => ipcRenderer.invoke("workspace:listAISnapshots", rootPath),
         openAISnapshotFolder: (rootPath) => ipcRenderer.invoke("workspace:openAISnapshotFolder", rootPath),
         createAIPackage: (input) => ipcRenderer.invoke("workspace:createAIPackage", input),
+        runCommand: (rootPath, commandId) => ipcRenderer.invoke("workspace:runCommand", rootPath, commandId),
+        cancelCommand: (executionId) => ipcRenderer.invoke("workspace:cancelCommand", executionId),
+        onCommandOutput: (listener) => {
+            const handler = (_event, output) => listener(output);
+            ipcRenderer.on("workspace:commandOutput", handler);
+            return () => ipcRenderer.removeListener("workspace:commandOutput", handler);
+        },
     },
     scanWorkspace: (rootPath) => ipcRenderer.invoke("workspace:scan", rootPath),
     openWorkspaceFolder: () => ipcRenderer.invoke("workspace:openFolder"),

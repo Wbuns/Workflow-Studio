@@ -3,6 +3,7 @@ import type {
   AiContinuationPrompt,
   WorkspaceProjectMetadata,
 } from "./workspace";
+import type { WorkspaceCommandExecution, WorkspaceCommandOutput } from "./workspaceAnalysis";
 
 export type GitFileStatus = {
   path: string;
@@ -28,6 +29,9 @@ export type WorkflowStudioBridge = {
     getActiveWorkspace: () => Promise<ActiveWorkspace>;
     getProjectMetadata: () => Promise<WorkspaceProjectMetadata>;
     generateContinuationPrompt: () => Promise<AiContinuationPrompt>;
+    runCommand?: (rootPath: string | undefined, commandId: string) => Promise<WorkspaceCommandExecution>;
+    cancelCommand?: (executionId: string) => Promise<{ ok: boolean; message: string }>;
+    onCommandOutput?: (listener: (output: WorkspaceCommandOutput) => void) => () => void;
   };
   git?: {
     getStatus: () => Promise<GitRepositoryStatus>;

@@ -49,6 +49,27 @@ export type WorkspaceCommand = {
   interactive?: boolean;
 };
 
+export type WorkspaceCommandExecutionStatus = "running" | "completed" | "failed" | "cancelled";
+
+export type WorkspaceCommandExecution = {
+  executionId: string;
+  commandId: string;
+  label: string;
+  command: string;
+  status: WorkspaceCommandExecutionStatus;
+  startedAt: string;
+  finishedAt?: string;
+  exitCode?: number;
+  message?: string;
+};
+
+export type WorkspaceCommandOutput = {
+  executionId: string;
+  stream: "stdout" | "stderr" | "system";
+  text: string;
+  timestamp: string;
+};
+
 export type EmbeddedWorkspaceAnalysis = {
   detected: boolean;
   platform?: string;
