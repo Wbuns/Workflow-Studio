@@ -1203,3 +1203,24 @@ button {
 @media (max-width: 900px) {
   .smart-recommendation-list { grid-template-columns: 1fr; }
 }
+
+/* v1.5.0 Daily Driver release polish */
+.status-bar .status-build-ready {
+  color: #86efac;
+}
+
+.status-bar .status-release {
+  margin-left: auto;
+  color: #bfdbfe;
+  font-weight: 700;
+}
+
+.brand > div:last-child span {
+  color: #93c5fd;
+}
+
+@media (max-width: 900px) {
+  .status-bar .status-release {
+    margin-left: 0;
+  }
+}

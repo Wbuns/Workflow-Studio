@@ -1,8 +1,8 @@
 {
   "name": "Workflow Studio",
   "description": "A desktop tool for package-based AI-assisted software development.",
-  "version": "1.2.6",
-  "currentMilestone": "v1.2-complete-workspace-intelligence",
+  "version": "1.5.0",
+  "currentMilestone": "v1.5.0-daily-driver-release",
   "projectType": "electron-react-typescript",
   "buildCommand": "npm run build",
   "testCommand": "",
@@ -11,5 +11,5 @@
   "documentationPaths": [
     "docs"
   ],
-  "status": "v1.2 complete; ready to use while returning to Orivex development"
+  "status": "v1.5.0 Daily Driver released; ready for regular project use and feedback-driven refinement"
 }

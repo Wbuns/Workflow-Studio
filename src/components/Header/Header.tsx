@@ -1,3 +1,4 @@
+import { appMetadata } from "../../config/appMetadata";
 import type { NavigationItem } from "../../types/navigation";
 import type { WorkspaceRecord } from "../../types/workspaceRegistry";
 
@@ -19,7 +20,7 @@ export function Header({
   return (
     <header className="app-header">
       <div>
-        <p className="eyebrow">Workflow Studio</p>
+        <p className="eyebrow">{appMetadata.name} · {appMetadata.releaseName}</p>
         <h1>{activePage.title}</h1>
       </div>
 

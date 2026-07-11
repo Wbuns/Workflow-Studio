@@ -1,3 +1,25 @@
+# v1.5.0 — Daily Driver Release
+
+## Released
+
+- Centralized application release metadata and version identity.
+- Updated the application package version to 1.5.0.
+- Updated Sidebar, Header, and Status Bar release labeling.
+- Documented the complete Daily Driver workflow and release boundaries.
+- Updated project metadata, README, roadmap, and release documentation.
+
+## Daily Driver systems
+
+- Workspace intelligence and lifecycle readiness
+- Embedded and PlatformIO project support
+- AI Workspace and AI package builder
+- Secure command execution and device-action permissions
+- Package Explorer
+- Unified Project Timeline
+- Smart Recommendations
+
+---
+
 # v1.3.0 — Embedded Device Project Foundation
 
 ## Added

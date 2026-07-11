@@ -1,3 +1,4 @@
+import { appVersionLabel } from "../../config/appMetadata";
 import type { NavigationItem } from "../../types/navigation";
 
 type SidebarProps = {
@@ -27,7 +28,7 @@ export function Sidebar({ activePageId, navigationItems, onNavigate }: SidebarPr
         <div className="brand-mark">WS</div>
         <div>
           <strong>Workflow Studio</strong>
-          <span>v1.4 Daily Driver</span>
+          <span>{appVersionLabel}</span>
         </div>
       </div>
 
