@@ -1,7 +1,7 @@
 import { contextBridge, ipcRenderer } from "electron";
 
 contextBridge.exposeInMainWorld("workflowStudio", {
-  version: "1.3.3",
+  version: "1.4.3",
   platform: process.platform,
   workspace: {
     scan: (rootPath?: string) => ipcRenderer.invoke("workspace:scan", rootPath),

@@ -134,3 +134,18 @@ Completed
 ## Fixed
 
 - Creating an AI snapshot no longer returns the application to Dashboard after a renderer refresh.
+
+
+# v1.4.3 — Navigation Refresh and Package Builder Repair
+
+## Fixed
+
+- Restored the missing AI Package Builder Electron handler and package export implementation.
+- AI package failures now return specific validation messages and safety details.
+- Generated packages again use the validated Workflow Studio manifest format.
+
+## Changed
+
+- Grouped sidebar navigation into Workspace, Development, Library, and System sections.
+- Updated the sidebar version label for the Daily Driver series.
+- Strengthened active-page contrast and accessibility state.
