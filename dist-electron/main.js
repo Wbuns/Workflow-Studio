@@ -1060,6 +1060,41 @@ function isSafePackageReplacement(relativePath) {
         return false;
     return /\.(tsx?|jsx?|json|md|css|scss|html|ps1|yml|yaml|txt)$/i.test(normalized);
 }
+function getAIPackageReadiness(rootPathInput) {
+    const rootPath = normalizeRoot(rootPathInput);
+    if (!exists(rootPath, ".git")) {
+        return {
+            isRepository: false,
+            changedFiles: [],
+            packageableFiles: [],
+            skippedFiles: [],
+            message: "Git status is required to identify packageable changes.",
+        };
+    }
+    const rawChanges = parseGitChangedFiles(rootPath);
+    const changedFiles = rawChanges.map((entry) => entry.filePath);
+    const packageableFiles = rawChanges
+        .filter((entry) => !entry.status.includes("D"))
+        .map((entry) => entry.filePath)
+        .filter((filePath) => isSafePackageReplacement(filePath))
+        .filter((filePath) => {
+        const candidate = path.join(rootPath, filePath);
+        return fs.existsSync(candidate) && fs.statSync(candidate).isFile();
+    })
+        .sort((a, b) => a.localeCompare(b));
+    const skippedFiles = changedFiles.filter((filePath) => !packageableFiles.includes(filePath));
+    return {
+        isRepository: true,
+        changedFiles,
+        packageableFiles,
+        skippedFiles,
+        message: packageableFiles.length
+            ? `${packageableFiles.length} safe replacement file${packageableFiles.length === 1 ? "" : "s"} ready.`
+            : changedFiles.length
+                ? "Workspace changes were found, but none are safe replacement files."
+                : "No workspace changes were detected.",
+    };
+}
 function packageReadme(input) {
     const fileList = input.files.map((file) => `- ${file}`).join("\n");
     const warningList = input.warnings.length
@@ -1155,16 +1190,9 @@ function createAIPackage(input) {
         };
     }
     const analysis = scanWorkspace(rootPath);
-    const rawChanges = parseGitChangedFiles(rootPath);
-    const safeChanges = rawChanges
-        .filter((entry) => !entry.status.includes("D"))
-        .map((entry) => entry.filePath)
-        .filter((filePath) => isSafePackageReplacement(filePath))
-        .filter((filePath) => fs.existsSync(path.join(rootPath, filePath)) && fs.statSync(path.join(rootPath, filePath)).isFile())
-        .sort((a, b) => a.localeCompare(b));
-    const skippedChanges = rawChanges
-        .map((entry) => entry.filePath)
-        .filter((filePath) => !safeChanges.includes(filePath));
+    const readiness = getAIPackageReadiness(rootPath);
+    const safeChanges = readiness.packageableFiles;
+    const skippedChanges = readiness.skippedFiles;
     if (skippedChanges.length) {
         warnings.push(`Skipped ${skippedChanges.length} changed file${skippedChanges.length === 1 ? "" : "s"} that cannot be safely packaged as replacement files.`);
     }
@@ -1286,6 +1314,7 @@ ipcMain.handle("workspace:listProjectTimeline", (_event, rootPath) => listProjec
 ipcMain.handle("workspace:createAISnapshot", (_event, rootPath) => createAISnapshot(rootPath));
 ipcMain.handle("workspace:listAISnapshots", (_event, rootPath) => listAISnapshots(rootPath));
 ipcMain.handle("workspace:openAISnapshotFolder", (_event, rootPath) => openAISnapshotFolder(rootPath));
+ipcMain.handle("workspace:getAIPackageReadiness", (_event, rootPath) => getAIPackageReadiness(rootPath));
 ipcMain.handle("workspace:createAIPackage", (_event, input) => createAIPackage(input));
 ipcMain.handle("workspace:openPath", (_event, rootPath, relativePath) => openWorkspacePath(rootPath, relativePath));
 ipcMain.handle("workspace:openFolder", async () => {

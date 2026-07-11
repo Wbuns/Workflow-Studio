@@ -1,0 +1,72 @@
+{
+  "packageId": "workflow-studio-ai-package-2026-07-11t20-16-47-543z",
+  "name": "workflow-studio-ai-package-2026-07-11t20-16-47-543z",
+  "version": "1.0.0",
+  "targetProject": "Workflow Studio",
+  "description": "AI Package Builder export for Workflow Studio.",
+  "generatedBy": "Workflow Studio AI Package Builder",
+  "generatedAt": "2026-07-11T20:16:47.557Z",
+  "developerRequest": "Test",
+  "files": [
+    {
+      "source": "files/dist-electron/main.js",
+      "target": "dist-electron/main.js"
+    },
+    {
+      "source": "files/dist-electron/preload.js",
+      "target": "dist-electron/preload.js"
+    },
+    {
+      "source": "files/docs/CHANGELOG.md",
+      "target": "docs/CHANGELOG.md"
+    },
+    {
+      "source": "files/electron/main.ts",
+      "target": "electron/main.ts"
+    },
+    {
+      "source": "files/electron/preload.ts",
+      "target": "electron/preload.ts"
+    },
+    {
+      "source": "files/package-lock.json",
+      "target": "package-lock.json"
+    },
+    {
+      "source": "files/package.json",
+      "target": "package.json"
+    },
+    {
+      "source": "files/src/config/appMetadata.ts",
+      "target": "src/config/appMetadata.ts"
+    },
+    {
+      "source": "files/src/features/ai-development/AIDevelopmentPage.tsx",
+      "target": "src/features/ai-development/AIDevelopmentPage.tsx"
+    },
+    {
+      "source": "files/src/features/ai-development/AIDevelopmentService.ts",
+      "target": "src/features/ai-development/AIDevelopmentService.ts"
+    }
+  ],
+  "suggestedInstallCommand": ".\\tools\\package\\install-package.ps1 \"C:\\Users\\mitch\\Desktop\\GPT Workflow Studio\\_packages\\workflow-studio-ai-package-2026-07-11t20-16-47-543z\"",
+  "suggestedBuildCommand": "npm run build",
+  "suggestedCommitMessage": "Test",
+  "manualTestChecklist": [
+    "Install the package with the standard Workflow Studio installer.",
+    "Run the suggested build command.",
+    "Open Workflow Studio and confirm the changed feature still loads.",
+    "Review the changed files before committing."
+  ],
+  "validation": {
+    "requiresChangedFiles": true,
+    "skippedChanges": [
+      "workflowstudio/ai-snapshots.json",
+      ".workflowstudio/ai-snapshots/Workflow-Studio-AI-Snapshot-2026-07-11T19-58-09-097Z.zip",
+      ".workflowstudio/ai-snapshots/_staging/Workflow-Studio-AI-Snapshot-2026-07-11T19-58-09-097Z/"
+    ],
+    "warnings": [
+      "Skipped 3 changed files that cannot be safely packaged as replacement files."
+    ]
+  }
+}

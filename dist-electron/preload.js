@@ -15,6 +15,7 @@ contextBridge.exposeInMainWorld("workflowStudio", {
         createAISnapshot: (rootPath) => ipcRenderer.invoke("workspace:createAISnapshot", rootPath),
         listAISnapshots: (rootPath) => ipcRenderer.invoke("workspace:listAISnapshots", rootPath),
         openAISnapshotFolder: (rootPath) => ipcRenderer.invoke("workspace:openAISnapshotFolder", rootPath),
+        getAIPackageReadiness: (rootPath) => ipcRenderer.invoke("workspace:getAIPackageReadiness", rootPath),
         createAIPackage: (input) => ipcRenderer.invoke("workspace:createAIPackage", input),
         runCommand: (rootPath, commandId, approvedPermission) => ipcRenderer.invoke("workspace:runCommand", rootPath, commandId, approvedPermission),
         cancelCommand: (executionId) => ipcRenderer.invoke("workspace:cancelCommand", executionId),
