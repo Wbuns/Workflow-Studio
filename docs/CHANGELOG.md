@@ -77,3 +77,47 @@ Completed
 - Planned firmware work no longer reduces early embedded projects to a misleading failure state.
 - Dashboard warnings are condensed into ordered recommended next steps.
 - Raw analyzer output remains available without dominating the primary Dashboard.
+
+# v1.3.5 — AI Context Engine 2.0
+
+## Added
+
+- Lifecycle-aware continuation prompts.
+- Readiness categories in AI workspace context.
+- Embedded platform, board, environment, framework, firmware, and device-profile context.
+- Workspace command profiles with permission labels in generated prompts.
+- Hardware, specification, and package-format documentation paths.
+- Recommended next actions and missing-context notices.
+- Copy Combined Prompt action using the current Developer Request.
+- Workspace Context Preview on the AI Development page.
+
+## Architecture
+
+- AI context is generated from the shared workspace analysis model.
+- No Orivex-specific behavior is hardcoded into generic AI services.
+
+
+# v1.4.0 — AI Development UI Polish
+
+## Added
+
+- Focused Context, Package Builder, and Snapshots tabs.
+- Compact workspace overview with persistent quick actions.
+- Visible copied-state feedback for continuation and combined prompts.
+- Improved responsive layouts for prompt preview, package preparation, and snapshot history.
+
+## Preserved
+
+- AI Context Engine 2.0 behavior.
+- Existing package validation and export workflow.
+- Snapshot creation and history data.
+
+
+# v1.4.1 — AI Workspace Consolidation
+
+## Changed
+
+- Replaced separate AI and AI Development navigation entries with one AI Workspace.
+- Promoted Developer Request into the primary workspace flow.
+- Consolidated continuation prompts, combined prompts, package building, and snapshots without changing backend services.
+- Removed duplicate AI routing from the active workspace.
