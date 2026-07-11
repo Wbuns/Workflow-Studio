@@ -1,0 +1,20 @@
+.git-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+  margin-top: 18px;
+}
+
+.git-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 0.65fr);
+  gap: 18px;
+  margin-top: 18px;
+}
+
+@media (max-width: 1100px) {
+  .git-grid,
+  .git-layout {
+    grid-template-columns: 1fr;
+  }
+}

@@ -1012,3 +1012,24 @@ button {
     grid-template-columns: 1fr;
   }
 }
+
+/* v1.4.2 Dashboard polish */
+.dashboard-quick-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.25rem;
+  margin-bottom: 1rem;
+  padding: 1rem 1.1rem;
+  border: 1px solid rgba(96, 165, 250, 0.22);
+  border-radius: 14px;
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.13), rgba(15, 23, 42, 0.5));
+}
+.dashboard-quick-actions h3 { margin: 0.15rem 0 0.25rem; color: #f8fafc; }
+.dashboard-quick-actions p { color: #94a3b8; }
+.dashboard-quick-action-buttons { display: flex; flex-wrap: wrap; gap: 0.65rem; justify-content: flex-end; }
+.dashboard-overview-cards { margin-top: 0; }
+@media (max-width: 900px) {
+  .dashboard-quick-actions { align-items: stretch; flex-direction: column; }
+  .dashboard-quick-action-buttons { justify-content: flex-start; }
+}

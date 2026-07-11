@@ -12,8 +12,15 @@ import {
 import type { WorkspaceRegistryState } from "../types/workspaceRegistry";
 import "./App.css";
 
+const ACTIVE_PAGE_KEY = "workflowstudio.activePage";
+
+function getInitialPageId() {
+  const saved = window.sessionStorage.getItem(ACTIVE_PAGE_KEY);
+  return navigationItems.some((item) => item.id === saved) ? saved! : "dashboard";
+}
+
 function App() {
-  const [activePageId, setActivePageId] = useState("dashboard");
+  const [activePageId, setActivePageId] = useState(getInitialPageId);
   const [workspaceRegistry, setWorkspaceRegistry] = useState<WorkspaceRegistryState>({
     activeWorkspaceId: "",
     recentWorkspaces: [],
@@ -45,6 +52,14 @@ function App() {
     );
   }, [workspaceRegistry]);
 
+  useEffect(() => {
+    window.sessionStorage.setItem(ACTIVE_PAGE_KEY, activePageId);
+  }, [activePageId]);
+
+  function handleNavigate(pageId: string) {
+    setActivePageId(pageId);
+  }
+
   function handleSelectWorkspace(workspaceId: string) {
     setWorkspaceRegistry((currentRegistry) => selectWorkspace(currentRegistry, workspaceId));
   }
@@ -66,9 +81,9 @@ function App() {
       <Sidebar
         activePageId={activePageId}
         navigationItems={navigationItems}
-        onNavigate={setActivePageId}
+        onNavigate={handleNavigate}
       />
-      <Workspace activePage={activePage} activeWorkspace={activeWorkspace} />
+      <Workspace activePage={activePage} activeWorkspace={activeWorkspace} onNavigate={handleNavigate} />
       <StatusBar activePage={activePage} activeWorkspace={activeWorkspace} />
     </div>
   );

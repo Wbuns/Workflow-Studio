@@ -12,14 +12,15 @@ import type { WorkspaceRecord } from "../../types/workspaceRegistry";
 type WorkspaceProps = {
   activePage: NavigationItem;
   activeWorkspace?: WorkspaceRecord;
+  onNavigate: (pageId: string) => void;
 };
 
-export function Workspace({ activePage, activeWorkspace }: WorkspaceProps) {
+export function Workspace({ activePage, activeWorkspace, onNavigate }: WorkspaceProps) {
   const rootPath = activeWorkspace?.rootPath;
 
   return (
     <main className="workspace">
-      {activePage.id === "dashboard" && <DashboardPage activePage={activePage} rootPath={rootPath} />}
+      {activePage.id === "dashboard" && <DashboardPage activePage={activePage} rootPath={rootPath} onNavigate={onNavigate} />}
       {activePage.id === "projects" && (
         <ProjectsPage activePage={activePage} activeWorkspace={activeWorkspace} />
       )}

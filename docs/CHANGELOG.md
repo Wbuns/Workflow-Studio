@@ -121,3 +121,16 @@ Completed
 - Promoted Developer Request into the primary workspace flow.
 - Consolidated continuation prompts, combined prompts, package building, and snapshots without changing backend services.
 - Removed duplicate AI routing from the active workspace.
+
+# v1.4.2 — Dashboard Polish and Navigation Stability
+
+## Added
+
+- Dashboard Continue Working quick actions.
+- Direct navigation to AI Workspace, Git, and Packages.
+- Session persistence for the active page and AI Workspace tab.
+- Session persistence for Developer Request and Package ID drafts.
+
+## Fixed
+
+- Creating an AI snapshot no longer returns the application to Dashboard after a renderer refresh.
