@@ -48,3 +48,21 @@ Completed
 - AI context engine
 - Multi-workspace foundation
 - Git, documentation, package, and template discovery polish
+
+# v1.3.1 — Workspace Command Profiles
+
+Completed
+
+## Added
+
+- Shared typed workspace command model.
+- Unified command discovery for package scripts and PlatformIO workflows.
+- Command categories, descriptions, source metadata, working directories, and safety flags.
+- Read-only command cards with clipboard support on the Dashboard.
+- Metadata-defined custom command support.
+- A project-analysis command profile reserved for future native execution.
+
+## Safety
+
+- Commands remain copy-only.
+- No shell execution, firmware flashing, or serial-port access was added.

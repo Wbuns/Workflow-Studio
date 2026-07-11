@@ -35,6 +35,20 @@ type WorkspacePackageScript = {
   command: string;
 };
 
+type WorkspaceCommandCategory = "development" | "build" | "test" | "embedded" | "maintenance" | "analysis";
+
+type WorkspaceCommand = {
+  id: string;
+  label: string;
+  command: string;
+  category: WorkspaceCommandCategory;
+  description: string;
+  source: "package-script" | "platformio" | "metadata" | "detected";
+  workingDirectory?: string;
+  destructive?: boolean;
+  interactive?: boolean;
+};
+
 
 type EmbeddedWorkspaceAnalysis = {
   detected: boolean;
@@ -76,6 +90,7 @@ type WorkspaceAnalysis = {
   applicationRootPath?: string;
   currentMilestone?: string;
   packageScripts: WorkspacePackageScript[];
+  workspaceCommands: WorkspaceCommand[];
   embedded?: EmbeddedWorkspaceAnalysis;
   capabilities: WorkspaceCapability[];
   health: {
@@ -387,6 +402,53 @@ function analyzeEmbeddedWorkspace(rootPath: string, workflowProject: Record<stri
   };
 }
 
+function buildWorkspaceCommands(
+  packageScripts: WorkspacePackageScript[],
+  packageManager: WorkspacePackageManager,
+  applicationRelativePath: string | undefined,
+  embedded: EmbeddedWorkspaceAnalysis | undefined,
+  workflowProject: Record<string, unknown> | null,
+): WorkspaceCommand[] {
+  const commands: WorkspaceCommand[] = [];
+  const workingDirectory = applicationRelativePath && applicationRelativePath !== "." ? applicationRelativePath : undefined;
+  const add = (command: WorkspaceCommand | undefined) => {
+    if (!command || commands.some((item) => item.id === command.id || item.command === command.command)) return;
+    commands.push(command);
+  };
+
+  for (const script of packageScripts) {
+    const category: WorkspaceCommandCategory = script.name === "build" ? "build" : script.name === "test" ? "test" : script.name === "dev" || script.name === "start" ? "development" : "maintenance";
+    add({
+      id: `script:${script.name}`,
+      label: script.name === "dev" ? "Start development server" : script.name === "build" ? "Build project" : script.name === "test" ? "Run tests" : `Run ${script.name}`,
+      command: scriptCommand(packageManager, script.name),
+      category,
+      description: `Run the ${script.name} package script.`,
+      source: "package-script",
+      workingDirectory,
+      interactive: script.name === "dev" || script.name === "start",
+    });
+  }
+
+  if (embedded?.buildCommand) add({ id: "embedded:build", label: "Build firmware", command: embedded.buildCommand, category: "build", description: "Compile firmware for the selected PlatformIO environment.", source: "platformio", workingDirectory });
+  if (embedded?.uploadCommand) add({ id: "embedded:upload", label: "Upload firmware", command: embedded.uploadCommand, category: "embedded", description: "Upload firmware to the connected embedded device.", source: "platformio", workingDirectory, destructive: true });
+  if (embedded?.serialMonitorCommand) add({ id: "embedded:monitor", label: "Open serial monitor", command: embedded.serialMonitorCommand, category: "embedded", description: "Open an interactive serial monitor for the selected environment.", source: "platformio", workingDirectory, interactive: true });
+  if (embedded?.cleanCommand) add({ id: "embedded:clean", label: "Clean firmware build", command: embedded.cleanCommand, category: "maintenance", description: "Remove generated PlatformIO build output.", source: "platformio", workingDirectory, destructive: true });
+
+  const metadataCommands = workflowProject?.commands;
+  if (Array.isArray(metadataCommands)) {
+    metadataCommands.forEach((value, index) => {
+      if (!value || typeof value !== "object") return;
+      const record = value as Record<string, unknown>;
+      if (typeof record.command !== "string" || typeof record.label !== "string") return;
+      add({ id: typeof record.id === "string" ? record.id : `metadata:${index}`, label: record.label, command: record.command, category: "maintenance", description: typeof record.description === "string" ? record.description : "Project metadata command.", source: "metadata", workingDirectory });
+    });
+  }
+
+  add({ id: "workspace:analysis", label: "Run project analysis", command: "Workflow Studio Analysis", category: "analysis", description: "Refresh workspace detection, health checks, and command profiles.", source: "detected" });
+  return commands;
+}
+
 function capability(
   id: string,
   label: string,
@@ -430,6 +492,7 @@ function scanWorkspace(rootPathInput?: string): WorkspaceAnalysis {
   const projectType: WorkspaceProjectType = embedded?.platformioConfigPath ? "platformio" : embedded ? (hasEsp32 ? "esp32" : "embedded") : detectedProjectType;
   const scripts = packageJson?.scripts ?? {};
   const packageScripts = Object.entries(scripts).map(([name, command]) => ({ name, command }));
+  const workspaceCommands = buildWorkspaceCommands(packageScripts, packageManager, applicationRelativePath, embedded, workflowProject);
   const buildCommand = embedded?.buildCommand ?? (scripts.build ? scriptCommand(packageManager, "build") : undefined);
   const devCommand = scripts.dev ? scriptCommand(packageManager, "dev") : undefined;
   const testCommand = scripts.test ? scriptCommand(packageManager, "test") : undefined;
@@ -507,6 +570,7 @@ function scanWorkspace(rootPathInput?: string): WorkspaceAnalysis {
     applicationRootPath,
     currentMilestone: workflowProject?.currentMilestone,
     packageScripts,
+    workspaceCommands,
     embedded,
     capabilities: [
       capability("git", "Git", hasGit, "Repository is available.", "Repository folder was not found."),

@@ -29,6 +29,26 @@ export type WorkspacePackageScript = {
   command: string;
 };
 
+export type WorkspaceCommandCategory =
+  | "development"
+  | "build"
+  | "test"
+  | "embedded"
+  | "maintenance"
+  | "analysis";
+
+export type WorkspaceCommand = {
+  id: string;
+  label: string;
+  command: string;
+  category: WorkspaceCommandCategory;
+  description: string;
+  source: "package-script" | "platformio" | "metadata" | "detected";
+  workingDirectory?: string;
+  destructive?: boolean;
+  interactive?: boolean;
+};
+
 export type EmbeddedWorkspaceAnalysis = {
   detected: boolean;
   platform?: string;
@@ -69,6 +89,7 @@ export type WorkspaceAnalysis = {
   applicationRootPath?: string;
   currentMilestone?: string;
   packageScripts: WorkspacePackageScript[];
+  workspaceCommands: WorkspaceCommand[];
   embedded?: EmbeddedWorkspaceAnalysis;
   capabilities: WorkspaceCapability[];
   health: WorkspaceHealth;

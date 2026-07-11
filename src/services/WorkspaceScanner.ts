@@ -27,6 +27,11 @@ const fallbackAnalysis: WorkspaceAnalysis = {
   packageJsonPath: "package.json",
   applicationRootPath: ".",
   currentMilestone: "v1.2 — Workspace Intelligence and AI Context Engine",
+  workspaceCommands: [
+    { id: "dev", label: "Start development server", command: "npm run dev", category: "development", description: "Start the Vite development server.", source: "package-script" },
+    { id: "build", label: "Build project", command: "npm run build", category: "build", description: "Compile and package Workflow Studio.", source: "package-script" },
+    { id: "analysis", label: "Run project analysis", command: "Workflow Studio Analysis", category: "analysis", description: "Refresh the read-only workspace analysis.", source: "detected" },
+  ],
   packageScripts: [
     { name: "dev", command: "vite" },
     { name: "build", command: "tsc -b && vite build && npm run electron:build" },
