@@ -744,6 +744,111 @@ function listDocumentation(rootPathInput) {
     entries.push(...collectMarkdownFiles(rootPath, "templates", "template"));
     return entries;
 }
+function listProjectTimeline(rootPathInput) {
+    const rootPath = normalizeRoot(rootPathInput);
+    const events = [];
+    const warnings = [];
+    if (exists(rootPath, ".git")) {
+        try {
+            const raw = runGit(rootPath, "log -n 30 --pretty=format:%H%x1f%h%x1f%aI%x1f%s");
+            for (const line of raw.split(/\r?\n/).filter(Boolean)) {
+                const [hash, shortHash, occurredAt, subject] = line.split("\x1f");
+                if (!hash || !occurredAt)
+                    continue;
+                events.push({
+                    id: `git-${hash}`,
+                    kind: "git",
+                    title: subject || "Git commit",
+                    detail: `Commit ${shortHash || hash.slice(0, 7)}`,
+                    occurredAt,
+                    status: "success",
+                });
+            }
+        }
+        catch (error) {
+            console.warn("Unable to read Git history for timeline.", error);
+            warnings.push("Git history could not be loaded.");
+        }
+        try {
+            const status = getGitStatus(rootPath);
+            if (status.status === "dirty") {
+                events.push({
+                    id: "workspace-uncommitted",
+                    kind: "workspace",
+                    title: "Uncommitted workspace changes",
+                    detail: `${status.changedFiles.length} changed file${status.changedFiles.length === 1 ? "" : "s"} on ${status.branch}.`,
+                    occurredAt: new Date().toISOString(),
+                    status: "warning",
+                });
+            }
+        }
+        catch {
+            // Git history above already reports useful failures.
+        }
+    }
+    for (const snapshot of listAISnapshots(rootPath)) {
+        events.push({
+            id: `snapshot-${snapshot.id}`,
+            kind: "snapshot",
+            title: "AI snapshot created",
+            detail: snapshot.name,
+            occurredAt: snapshot.createdAt,
+            path: path.relative(rootPath, snapshot.filePath),
+            status: "success",
+        });
+    }
+    const packagesRoot = path.join(rootPath, "_packages");
+    if (fs.existsSync(packagesRoot) && fs.statSync(packagesRoot).isDirectory()) {
+        for (const entry of fs.readdirSync(packagesRoot, { withFileTypes: true })) {
+            if (entry.name.startsWith("."))
+                continue;
+            const entryPath = path.join(packagesRoot, entry.name);
+            try {
+                const stats = fs.statSync(entryPath);
+                const manifestPath = entry.isDirectory() ? path.join(entryPath, "manifest.json") : "";
+                let title = "Package created";
+                let detail = entry.name;
+                if (manifestPath && fs.existsSync(manifestPath)) {
+                    const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
+                    title = manifest.name ?? title;
+                    detail = [manifest.packageId ?? entry.name, manifest.version ? `v${manifest.version}` : ""].filter(Boolean).join(" · ");
+                }
+                events.push({
+                    id: `package-${entry.name}`,
+                    kind: "package",
+                    title,
+                    detail,
+                    occurredAt: stats.mtime.toISOString(),
+                    path: path.join("_packages", entry.name),
+                    status: "success",
+                });
+            }
+            catch (error) {
+                console.warn(`Unable to inspect package ${entry.name}.`, error);
+            }
+        }
+    }
+    const packageHistory = readJson(rootPath, ".workflowstudio/packages.json");
+    for (const record of packageHistory?.packages ?? []) {
+        if (!record.installedDate)
+            continue;
+        const name = record.name ?? record.packageId ?? "Package";
+        events.push({
+            id: `installed-${record.packageId ?? name}-${record.installedDate}`,
+            kind: "package",
+            title: "Package installed",
+            detail: [name, record.version ? `v${record.version}` : ""].filter(Boolean).join(" · "),
+            occurredAt: record.installedDate,
+            path: ".workflowstudio/packages.json",
+            status: "info",
+        });
+    }
+    const normalized = events
+        .filter((event) => !Number.isNaN(Date.parse(event.occurredAt)))
+        .sort((a, b) => Date.parse(b.occurredAt) - Date.parse(a.occurredAt))
+        .slice(0, 80);
+    return { generatedAt: new Date().toISOString(), events: normalized, warnings };
+}
 function safeTimestamp() {
     return new Date().toISOString().replace(/[:.]/g, "-");
 }
@@ -1144,6 +1249,7 @@ ipcMain.handle("workspace:listDocumentation", (_event, rootPath) => listDocument
 ipcMain.handle("workspace:listPackages", (_event, rootPath) => listPackages(rootPath));
 ipcMain.handle("workspace:getPackageTree", (_event, rootPath) => buildPackageTree(rootPath));
 ipcMain.handle("workspace:listTemplates", (_event, rootPath) => listTemplates(rootPath));
+ipcMain.handle("workspace:listProjectTimeline", (_event, rootPath) => listProjectTimeline(rootPath));
 ipcMain.handle("workspace:createAISnapshot", (_event, rootPath) => createAISnapshot(rootPath));
 ipcMain.handle("workspace:listAISnapshots", (_event, rootPath) => listAISnapshots(rootPath));
 ipcMain.handle("workspace:openAISnapshotFolder", (_event, rootPath) => openAISnapshotFolder(rootPath));

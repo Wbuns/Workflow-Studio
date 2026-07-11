@@ -6,6 +6,7 @@ import { PackagesPage } from "../../features/packages/PackagesPage";
 import { ProjectsPage } from "../../features/projects/ProjectsPage";
 import { TemplatesPage } from "../../features/templates/TemplatesPage";
 import { SettingsPage } from "../../features/settings/SettingsPage";
+import { TimelinePage } from "../../features/timeline/TimelinePage";
 import type { NavigationItem } from "../../types/navigation";
 import type { WorkspaceRecord } from "../../types/workspaceRegistry";
 
@@ -24,6 +25,7 @@ export function Workspace({ activePage, activeWorkspace, onNavigate }: Workspace
       {activePage.id === "projects" && (
         <ProjectsPage activePage={activePage} activeWorkspace={activeWorkspace} />
       )}
+      {activePage.id === "timeline" && <TimelinePage activePage={activePage} rootPath={rootPath} />}
       {activePage.id === "packages" && (
         <PackagesPage activePage={activePage} rootPath={rootPath} />
       )}

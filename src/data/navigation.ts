@@ -20,6 +20,15 @@ export const navigationItems: NavigationItem[] = [
     actionLabel: "Open Project",
   },
   {
+    id: "timeline",
+    label: "Timeline",
+    eyebrow: "Project History",
+    title: "Timeline",
+    description:
+      "Review commits, packages, AI snapshots, and workspace activity in one chronological project history.",
+    actionLabel: "Open Timeline",
+  },
+  {
     id: "packages",
     label: "Packages",
     eyebrow: "Milestone Packages",

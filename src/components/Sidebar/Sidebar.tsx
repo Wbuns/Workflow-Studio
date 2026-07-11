@@ -12,7 +12,7 @@ type NavigationGroup = {
 };
 
 const navigationGroups: NavigationGroup[] = [
-  { label: "Workspace", itemIds: ["dashboard", "projects", "ai-workspace"] },
+  { label: "Workspace", itemIds: ["dashboard", "projects", "ai-workspace", "timeline"] },
   { label: "Development", itemIds: ["packages", "documentation", "git"] },
   { label: "Library", itemIds: ["templates"] },
   { label: "System", itemIds: ["settings"] },

@@ -150,10 +150,14 @@ Completed
 - Updated the sidebar version label for the Daily Driver series.
 - Strengthened active-page contrast and accessibility state.
 
-# v1.4.4 — Package Explorer
+
+# v1.4.5 — Unified Project Timeline
 
 ## Added
-- Expandable package and backup folder tree
-- Breadcrumb navigation
-- Compact folder contents preview
-- Direct open-in-Explorer actions
+
+- Project Timeline page
+- Chronological Git commit history
+- Generated and installed package activity
+- AI snapshot activity
+- Current uncommitted workspace change indicator
+- Timeline filters and direct location opening
