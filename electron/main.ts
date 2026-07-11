@@ -902,6 +902,47 @@ function listPackages(rootPathInput?: string): WorkspacePackageEntry[] {
   return entries;
 }
 
+
+type WorkspacePackageTreeNode = {
+  name: string;
+  path: string;
+  kind: "folder" | "file";
+  children?: WorkspacePackageTreeNode[];
+};
+
+function buildPackageTree(rootPathInput?: string): WorkspacePackageTreeNode[] {
+  const rootPath = normalizeRoot(rootPathInput);
+  const roots = ["_packages", "_backup"];
+
+  function walk(relativePath: string, depth = 0): WorkspacePackageTreeNode[] {
+    if (depth > 6) return [];
+    const absolutePath = path.join(rootPath, relativePath);
+    if (!fs.existsSync(absolutePath) || !fs.statSync(absolutePath).isDirectory()) return [];
+
+    return fs.readdirSync(absolutePath, { withFileTypes: true })
+      .filter((entry) => !entry.name.startsWith("."))
+      .sort((a, b) => {
+        if (a.isDirectory() !== b.isDirectory()) return a.isDirectory() ? -1 : 1;
+        return a.name.localeCompare(b.name);
+      })
+      .map((entry) => {
+        const childPath = path.join(relativePath, entry.name);
+        return entry.isDirectory()
+          ? { name: entry.name, path: childPath, kind: "folder" as const, children: walk(childPath, depth + 1) }
+          : { name: entry.name, path: childPath, kind: "file" as const };
+      });
+  }
+
+  return roots
+    .filter((relativePath) => fs.existsSync(path.join(rootPath, relativePath)))
+    .map((relativePath) => ({
+      name: relativePath,
+      path: relativePath,
+      kind: "folder" as const,
+      children: walk(relativePath),
+    }));
+}
+
 function collectReusableFiles(
   rootPath: string,
   relativeFolder: string,
@@ -1453,6 +1494,7 @@ ipcMain.handle("workspace:scan", (_event, rootPath?: string) => scanWorkspace(ro
 ipcMain.handle("workspace:gitStatus", (_event, rootPath?: string) => getGitStatus(rootPath));
 ipcMain.handle("workspace:listDocumentation", (_event, rootPath?: string) => listDocumentation(rootPath));
 ipcMain.handle("workspace:listPackages", (_event, rootPath?: string) => listPackages(rootPath));
+ipcMain.handle("workspace:getPackageTree", (_event, rootPath?: string) => buildPackageTree(rootPath));
 ipcMain.handle("workspace:listTemplates", (_event, rootPath?: string) => listTemplates(rootPath));
 ipcMain.handle("workspace:createAISnapshot", (_event, rootPath?: string) => createAISnapshot(rootPath));
 ipcMain.handle("workspace:listAISnapshots", (_event, rootPath?: string) => listAISnapshots(rootPath));

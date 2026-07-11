@@ -149,3 +149,11 @@ Completed
 - Grouped sidebar navigation into Workspace, Development, Library, and System sections.
 - Updated the sidebar version label for the Daily Driver series.
 - Strengthened active-page contrast and accessibility state.
+
+# v1.4.4 — Package Explorer
+
+## Added
+- Expandable package and backup folder tree
+- Breadcrumb navigation
+- Compact folder contents preview
+- Direct open-in-Explorer actions

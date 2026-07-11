@@ -1,6 +1,6 @@
 import { contextBridge, ipcRenderer } from "electron";
 contextBridge.exposeInMainWorld("workflowStudio", {
-    version: "1.4.3",
+    version: "1.4.4",
     platform: process.platform,
     workspace: {
         scan: (rootPath) => ipcRenderer.invoke("workspace:scan", rootPath),
@@ -8,6 +8,7 @@ contextBridge.exposeInMainWorld("workflowStudio", {
         gitStatus: (rootPath) => ipcRenderer.invoke("workspace:gitStatus", rootPath),
         listDocumentation: (rootPath) => ipcRenderer.invoke("workspace:listDocumentation", rootPath),
         listPackages: (rootPath) => ipcRenderer.invoke("workspace:listPackages", rootPath),
+        getPackageTree: (rootPath) => ipcRenderer.invoke("workspace:getPackageTree", rootPath),
         listTemplates: (rootPath) => ipcRenderer.invoke("workspace:listTemplates", rootPath),
         openPath: (rootPath, relativePath) => ipcRenderer.invoke("workspace:openPath", rootPath, relativePath),
         createAISnapshot: (rootPath) => ipcRenderer.invoke("workspace:createAISnapshot", rootPath),
