@@ -29,7 +29,7 @@ export type WorkflowStudioBridge = {
     getActiveWorkspace: () => Promise<ActiveWorkspace>;
     getProjectMetadata: () => Promise<WorkspaceProjectMetadata>;
     generateContinuationPrompt: () => Promise<AiContinuationPrompt>;
-    runCommand?: (rootPath: string | undefined, commandId: string) => Promise<WorkspaceCommandExecution>;
+    runCommand?: (rootPath: string | undefined, commandId: string, approvedPermission?: "interactive" | "device-changing") => Promise<WorkspaceCommandExecution>;
     cancelCommand?: (executionId: string) => Promise<{ ok: boolean; message: string }>;
     onCommandOutput?: (listener: (output: WorkspaceCommandOutput) => void) => () => void;
   };

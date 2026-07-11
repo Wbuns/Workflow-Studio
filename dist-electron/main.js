@@ -30,16 +30,26 @@ function resolveCommandWorkingDirectory(rootPath, command) {
         throw new Error("Command working directory is outside the workspace.");
     return candidate;
 }
-function runWorkspaceCommand(target, rootPathInput, commandId) {
+function runWorkspaceCommand(target, rootPathInput, commandId, approvedPermission) {
     const rootPath = normalizeRoot(rootPathInput);
     const analysis = scanWorkspace(rootPath);
     const command = analysis.workspaceCommands.find((entry) => entry.id === commandId);
     if (!command)
         throw new Error("Workspace command is no longer available. Run project analysis and try again.");
-    if (command.interactive)
-        throw new Error("Interactive commands are not enabled in v1.3.2.");
-    if (command.destructive)
-        throw new Error("Device-changing and destructive commands require a future permission milestone.");
+    if (command.permission === "blocked")
+        throw new Error("This command is blocked from native execution.");
+    if (command.permission === "interactive" && approvedPermission !== "interactive") {
+        throw new Error("Interactive command approval is required.");
+    }
+    if (command.permission === "device-changing" && approvedPermission !== "device-changing") {
+        throw new Error("Device-changing command approval is required.");
+    }
+    if (command.permission === "interactive" && Array.from(runningWorkspaceCommands.values()).some((entry) => entry.execution.permission === "interactive")) {
+        throw new Error("An interactive command session is already running.");
+    }
+    if (command.permission === "device-changing" && Array.from(runningWorkspaceCommands.values()).some((entry) => entry.execution.permission === "interactive" || entry.execution.permission === "device-changing")) {
+        throw new Error("Stop the active device session before uploading firmware.");
+    }
     const tokens = tokenizeCommand(command.command);
     if (tokens.length === 0)
         throw new Error("Command is empty.");
@@ -54,6 +64,7 @@ function runWorkspaceCommand(target, rootPathInput, commandId) {
         command: command.command,
         status: "running",
         startedAt: new Date().toISOString(),
+        permission: command.permission,
     };
     const child = spawn(executable, tokens.slice(1), {
         cwd: resolveCommandWorkingDirectory(rootPath, command),
@@ -328,7 +339,14 @@ function buildWorkspaceCommands(packageScripts, packageManager, applicationRelat
     const add = (command) => {
         if (!command || commands.some((item) => item.id === command.id || item.command === command.command))
             return;
-        commands.push(command);
+        const permission = command.id === "embedded:upload"
+            ? "device-changing"
+            : command.interactive
+                ? "interactive"
+                : command.source === "metadata" || command.id === "workspace:analysis"
+                    ? "blocked"
+                    : "safe";
+        commands.push({ ...command, permission });
     };
     for (const script of packageScripts) {
         const category = script.name === "build" ? "build" : script.name === "test" ? "test" : script.name === "dev" || script.name === "start" ? "development" : "maintenance";
@@ -846,7 +864,7 @@ async function openAISnapshotFolder(rootPathInput) {
         message: result.length === 0 ? "Opened AI snapshot folder." : result,
     };
 }
-ipcMain.handle("workspace:runCommand", (event, rootPath, commandId) => runWorkspaceCommand(event.sender, rootPath, commandId));
+ipcMain.handle("workspace:runCommand", (event, rootPath, commandId, approvedPermission) => runWorkspaceCommand(event.sender, rootPath, commandId, approvedPermission));
 ipcMain.handle("workspace:cancelCommand", (_event, executionId) => cancelWorkspaceCommand(executionId));
 ipcMain.handle("workspace:scan", (_event, rootPath) => scanWorkspace(rootPath));
 ipcMain.handle("workspace:gitStatus", (_event, rootPath) => getGitStatus(rootPath));

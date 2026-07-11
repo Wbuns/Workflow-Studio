@@ -37,6 +37,8 @@ export type WorkspaceCommandCategory =
   | "maintenance"
   | "analysis";
 
+export type WorkspaceCommandPermission = "safe" | "interactive" | "device-changing" | "blocked";
+
 export type WorkspaceCommand = {
   id: string;
   label: string;
@@ -47,6 +49,7 @@ export type WorkspaceCommand = {
   workingDirectory?: string;
   destructive?: boolean;
   interactive?: boolean;
+  permission: WorkspaceCommandPermission;
 };
 
 export type WorkspaceCommandExecutionStatus = "running" | "completed" | "failed" | "cancelled";
@@ -61,6 +64,7 @@ export type WorkspaceCommandExecution = {
   finishedAt?: string;
   exitCode?: number;
   message?: string;
+  permission: WorkspaceCommandPermission;
 };
 
 export type WorkspaceCommandOutput = {

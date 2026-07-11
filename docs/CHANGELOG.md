@@ -49,20 +49,31 @@ Completed
 - Multi-workspace foundation
 - Git, documentation, package, and template discovery polish
 
-# v1.3.1 — Workspace Command Profiles
-
-Completed
+# v1.3.3 — Command Permissions and Embedded Device Actions
 
 ## Added
 
-- Shared typed workspace command model.
-- Unified command discovery for package scripts and PlatformIO workflows.
-- Command categories, descriptions, source metadata, working directories, and safety flags.
-- Read-only command cards with clipboard support on the Dashboard.
-- Metadata-defined custom command support.
-- A project-analysis command profile reserved for future native execution.
+- Workspace command permission levels.
+- Explicit approval for interactive and device-changing commands.
+- PlatformIO firmware upload execution.
+- Serial monitor session execution and stopping.
+- Duplicate interactive and device-session protection.
+- Permission indicators in the Dashboard.
+- Copy-only blocking for unapproved metadata commands.
 
-## Safety
+# v1.3.4 — Workspace Intelligence 2.0
 
-- Commands remain copy-only.
-- No shell execution, firmware flashing, or serial-port access was added.
+## Added
+
+- Phase-aware project lifecycle classification.
+- Readiness categories for foundation, documentation, implementation, and delivery.
+- Separate Not Started, In Progress, Ready, and Needs Attention states.
+- Planning-aware embedded project guidance.
+- Compact expandable capability and analyzer details.
+- Lifecycle and current-milestone Dashboard summary.
+
+## Changed
+
+- Planned firmware work no longer reduces early embedded projects to a misleading failure state.
+- Dashboard warnings are condensed into ordered recommended next steps.
+- Raw analyzer output remains available without dominating the primary Dashboard.
