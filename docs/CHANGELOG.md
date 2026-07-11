@@ -1,3 +1,15 @@
+# v1.5.1 — Daily Driver UX Fixes
+
+## Fixed
+
+- Rebuilt snapshot history from snapshot ZIP files when the history index is missing or stale.
+- Removed the duplicate snapshot creation action from the Snapshots tab.
+- Added Refresh History and Open Snapshot Folder actions to the Snapshots tab.
+- Added descriptive disabled labels to the AI Package Builder button.
+- Improved sidebar group-label alignment, size, and readability.
+
+---
+
 # v1.5.0 — Daily Driver Release
 
 ## Released

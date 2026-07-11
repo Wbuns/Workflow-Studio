@@ -1,0 +1,84 @@
+{
+  "snapshots": [
+    {
+      "id": "Workflow-Studio-AI-Snapshot-2026-07-11T19-53-51-600Z",
+      "name": "Workflow-Studio-AI-Snapshot-2026-07-11T19-53-51-600Z.zip",
+      "filePath": "C:\\Users\\mitch\\Desktop\\GPT Workflow Studio\\.workflowstudio\\ai-snapshots\\Workflow-Studio-AI-Snapshot-2026-07-11T19-53-51-600Z.zip",
+      "createdAt": "2026-07-11T19:53:52.081Z",
+      "rootPath": "C:\\Users\\mitch\\Desktop\\GPT Workflow Studio",
+      "includedRoots": [],
+      "excludedPatterns": [],
+      "sizeBytes": 173979
+    },
+    {
+      "id": "Workflow-Studio-AI-Snapshot-2026-07-11T19-30-02-824Z",
+      "name": "Workflow-Studio-AI-Snapshot-2026-07-11T19-30-02-824Z.zip",
+      "filePath": "C:\\Users\\mitch\\Desktop\\GPT Workflow Studio\\.workflowstudio\\ai-snapshots\\Workflow-Studio-AI-Snapshot-2026-07-11T19-30-02-824Z.zip",
+      "createdAt": "2026-07-11T19:30:03.369Z",
+      "rootPath": "C:\\Users\\mitch\\Desktop\\GPT Workflow Studio",
+      "includedRoots": [],
+      "excludedPatterns": [],
+      "sizeBytes": 173384
+    },
+    {
+      "id": "Workflow-Studio-AI-Snapshot-2026-07-11T06-50-37-705Z",
+      "name": "Workflow-Studio-AI-Snapshot-2026-07-11T06-50-37-705Z.zip",
+      "filePath": "C:\\Users\\mitch\\Desktop\\GPT Workflow Studio\\.workflowstudio\\ai-snapshots\\Workflow-Studio-AI-Snapshot-2026-07-11T06-50-37-705Z.zip",
+      "createdAt": "2026-07-11T06:50:38.175Z",
+      "rootPath": "C:\\Users\\mitch\\Desktop\\GPT Workflow Studio",
+      "includedRoots": [],
+      "excludedPatterns": [],
+      "sizeBytes": 156729
+    },
+    {
+      "id": "Workflow-Studio-AI-Snapshot-2026-07-11T06-39-18-575Z",
+      "name": "Workflow-Studio-AI-Snapshot-2026-07-11T06-39-18-575Z.zip",
+      "filePath": "C:\\Users\\mitch\\Desktop\\GPT Workflow Studio\\.workflowstudio\\ai-snapshots\\Workflow-Studio-AI-Snapshot-2026-07-11T06-39-18-575Z.zip",
+      "createdAt": "2026-07-11T06:39:19.058Z",
+      "rootPath": "C:\\Users\\mitch\\Desktop\\GPT Workflow Studio",
+      "includedRoots": [],
+      "excludedPatterns": [],
+      "sizeBytes": 155064
+    },
+    {
+      "id": "Workflow-Studio-AI-Snapshot-2026-07-11T06-31-58-273Z",
+      "name": "Workflow-Studio-AI-Snapshot-2026-07-11T06-31-58-273Z.zip",
+      "filePath": "C:\\Users\\mitch\\Desktop\\GPT Workflow Studio\\.workflowstudio\\ai-snapshots\\Workflow-Studio-AI-Snapshot-2026-07-11T06-31-58-273Z.zip",
+      "createdAt": "2026-07-11T06:31:58.735Z",
+      "rootPath": "C:\\Users\\mitch\\Desktop\\GPT Workflow Studio",
+      "includedRoots": [],
+      "excludedPatterns": [],
+      "sizeBytes": 154181
+    },
+    {
+      "id": "Workflow-Studio-AI-Snapshot-2026-07-11T06-31-53-735Z",
+      "name": "Workflow-Studio-AI-Snapshot-2026-07-11T06-31-53-735Z.zip",
+      "filePath": "C:\\Users\\mitch\\Desktop\\GPT Workflow Studio\\.workflowstudio\\ai-snapshots\\Workflow-Studio-AI-Snapshot-2026-07-11T06-31-53-735Z.zip",
+      "createdAt": "2026-07-11T06:31:54.211Z",
+      "rootPath": "C:\\Users\\mitch\\Desktop\\GPT Workflow Studio",
+      "includedRoots": [],
+      "excludedPatterns": [],
+      "sizeBytes": 154181
+    },
+    {
+      "id": "Workflow-Studio-AI-Snapshot-2026-07-11T04-56-26-046Z",
+      "name": "Workflow-Studio-AI-Snapshot-2026-07-11T04-56-26-046Z.zip",
+      "filePath": "C:\\Users\\mitch\\Desktop\\GPT Workflow Studio\\.workflowstudio\\ai-snapshots\\Workflow-Studio-AI-Snapshot-2026-07-11T04-56-26-046Z.zip",
+      "createdAt": "2026-07-11T04:56:26.589Z",
+      "rootPath": "C:\\Users\\mitch\\Desktop\\GPT Workflow Studio",
+      "includedRoots": [],
+      "excludedPatterns": [],
+      "sizeBytes": 136154
+    },
+    {
+      "id": "Workflow-Studio-AI-Snapshot-2026-07-09T21-39-18-663Z",
+      "name": "Workflow-Studio-AI-Snapshot-2026-07-09T21-39-18-663Z.zip",
+      "filePath": "C:\\Users\\mitch\\Desktop\\GPT Workflow Studio\\.workflowstudio\\ai-snapshots\\Workflow-Studio-AI-Snapshot-2026-07-09T21-39-18-663Z.zip",
+      "createdAt": "2026-07-09T21:39:19.116Z",
+      "rootPath": "C:\\Users\\mitch\\Desktop\\GPT Workflow Studio",
+      "includedRoots": [],
+      "excludedPatterns": [],
+      "sizeBytes": 131172
+    }
+  ]
+}

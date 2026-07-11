@@ -1155,16 +1155,53 @@ function snapshotHistoryPath(rootPath: string) {
 function listAISnapshots(rootPathInput?: string): AISnapshotRecord[] {
   const rootPath = normalizeRoot(rootPathInput);
   const historyFile = snapshotHistoryPath(rootPath);
+  const snapshotsByPath = new Map<string, AISnapshotRecord>();
 
-  if (!fs.existsSync(historyFile)) return [];
-
-  try {
-    const history = JSON.parse(fs.readFileSync(historyFile, "utf8")) as { snapshots?: AISnapshotRecord[] };
-    return (history.snapshots ?? []).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-  } catch (error) {
-    console.warn("Unable to read AI snapshot history.", error);
-    return [];
+  if (fs.existsSync(historyFile)) {
+    try {
+      const history = JSON.parse(fs.readFileSync(historyFile, "utf8")) as { snapshots?: AISnapshotRecord[] };
+      for (const snapshot of history.snapshots ?? []) {
+        snapshotsByPath.set(path.resolve(snapshot.filePath), snapshot);
+      }
+    } catch (error) {
+      console.warn("Unable to read AI snapshot history.", error);
+    }
   }
+
+  const folder = snapshotRoot(rootPath);
+  if (fs.existsSync(folder)) {
+    for (const entry of fs.readdirSync(folder, { withFileTypes: true })) {
+      if (!entry.isFile() || !entry.name.toLowerCase().endsWith(".zip")) continue;
+
+      const filePath = path.join(folder, entry.name);
+      const resolvedPath = path.resolve(filePath);
+      if (snapshotsByPath.has(resolvedPath)) continue;
+
+      const stat = fs.statSync(filePath);
+      snapshotsByPath.set(resolvedPath, {
+        id: path.basename(entry.name, path.extname(entry.name)),
+        name: entry.name,
+        filePath,
+        createdAt: stat.birthtime.toISOString() !== new Date(0).toISOString()
+          ? stat.birthtime.toISOString()
+          : stat.mtime.toISOString(),
+        rootPath,
+        includedRoots: [],
+        excludedPatterns: [],
+        sizeBytes: stat.size,
+      });
+    }
+  }
+
+  const snapshots = Array.from(snapshotsByPath.values())
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+    .slice(0, 25);
+
+  if (snapshots.length > 0) {
+    writeJson(historyFile, { snapshots });
+  }
+
+  return snapshots;
 }
 
 function shouldExclude(relativePath: string) {
