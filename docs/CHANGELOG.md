@@ -1,3 +1,21 @@
+# v1.3.0 — Embedded Device Project Foundation
+
+## Added
+
+- Shared embedded workspace analysis models.
+- Optional embedded-device project metadata fields.
+- PlatformIO, ESP32-family, firmware entry-point, environment, board, and framework detection.
+- Embedded project health checks and generated-output tracking warning.
+- Read-only embedded target and command panels on the Dashboard.
+- Embedded Project Support documentation.
+
+## Safety
+
+- Firmware flashing and serial-port execution are intentionally not included in this milestone.
+- Product-specific behavior remains metadata and device-profile driven.
+
+---
+
 # Workflow Studio Changelog
 
 All notable changes to Workflow Studio are documented here.

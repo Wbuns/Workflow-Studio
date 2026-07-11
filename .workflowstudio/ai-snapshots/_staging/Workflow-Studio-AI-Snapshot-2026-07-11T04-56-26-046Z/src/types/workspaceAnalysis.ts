@@ -3,13 +3,10 @@ export type WorkspaceProjectType =
   | "electron"
   | "node"
   | "python"
-  | "embedded"
-  | "esp32"
-  | "platformio"
   | "electron-react-typescript"
   | "unknown";
 
-export type WorkspacePackageManager = "npm" | "pnpm" | "yarn" | "platformio" | "unknown";
+export type WorkspacePackageManager = "npm" | "pnpm" | "yarn" | "unknown";
 
 export type WorkspaceCapability = {
   id: string;
@@ -27,25 +24,6 @@ export type WorkspaceHealth = {
 export type WorkspacePackageScript = {
   name: string;
   command: string;
-};
-
-export type EmbeddedWorkspaceAnalysis = {
-  detected: boolean;
-  platform?: string;
-  boardIdentifiers: string[];
-  environments: string[];
-  frameworks: string[];
-  firmwareSourcePath?: string;
-  platformioConfigPath?: string;
-  buildCommand?: string;
-  uploadCommand?: string;
-  serialMonitorCommand?: string;
-  cleanCommand?: string;
-  deviceProfile?: string;
-  hardwareDocumentationPaths: string[];
-  specificationPaths: string[];
-  packageFormatDocumentationPaths: string[];
-  generatedOutputTracked: boolean;
 };
 
 export type WorkspaceAnalysis = {
@@ -69,7 +47,6 @@ export type WorkspaceAnalysis = {
   applicationRootPath?: string;
   currentMilestone?: string;
   packageScripts: WorkspacePackageScript[];
-  embedded?: EmbeddedWorkspaceAnalysis;
   capabilities: WorkspaceCapability[];
   health: WorkspaceHealth;
 };

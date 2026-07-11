@@ -11,32 +11,36 @@ function getHealthStatus(score: number): DashboardSummary["healthStatus"] {
 function getNextActions(analysis: WorkspaceAnalysis): string[] {
   const actions: string[] = [];
 
-  if (!analysis.hasWorkflowMetadata) actions.push("Create Workflow Studio metadata");
-  if (!analysis.buildCommand) actions.push(analysis.embedded?.detected ? "Define a PlatformIO build environment" : "Add a build script to package.json");
-  if (!analysis.hasDocs) actions.push("Create a docs folder");
+  if (!analysis.hasWorkflowMetadata) {
+    actions.push("Create Workflow Studio metadata");
+  }
 
-  if (analysis.embedded?.detected) {
-    if (!analysis.embedded.platformioConfigPath) actions.push("Add platformio.ini");
-    if (!analysis.embedded.firmwareSourcePath) actions.push("Add a firmware entry point");
-    if (analysis.embedded.boardIdentifiers.length === 0) actions.push("Define a board environment");
-  } else if (!analysis.testCommand) {
+  if (!analysis.buildCommand) {
+    actions.push("Add a build script to package.json");
+  }
+
+  if (!analysis.hasDocs) {
+    actions.push("Create a docs folder");
+  }
+
+  if (!analysis.testCommand) {
     actions.push("Add a test command when the project is ready");
   }
 
   actions.push("Generate AI continuation context");
   actions.push("Review Git status before the next package");
+
   return actions.slice(0, 5);
 }
 
 function toDashboardSummary(analysis: WorkspaceAnalysis): DashboardSummary {
   return {
     projectName: analysis.projectName,
-    tagline: analysis.embedded?.detected ? "Embedded workspace intelligence is active." : "Workspace intelligence is active.",
-    description: analysis.embedded?.detected
-      ? "Workflow Studio detected an embedded-device project and analyzed its PlatformIO configuration, firmware entry point, board environments, documentation, and safe read-only commands."
-      : "Workflow Studio is scanning this project for metadata, documentation, package workflow readiness, Git support, and development commands.",
-    version: "v1.3",
-    currentMilestone: analysis.currentMilestone ?? "v1.3 Embedded Device Project Foundation",
+    tagline: "Workspace intelligence is active.",
+    description:
+      "Workflow Studio is scanning this project for metadata, documentation, package workflow readiness, Git support, and development commands.",
+    version: "v1.2",
+    currentMilestone: "v1.2 Workspace Intelligence",
     projectType: analysis.projectType,
     gitEnabled: analysis.hasGit,
     packageFolder: "_packages",
@@ -58,5 +62,6 @@ function toDashboardSummary(analysis: WorkspaceAnalysis): DashboardSummary {
 }
 
 export async function getDashboardSummary(rootPath?: string): Promise<DashboardSummary> {
-  return toDashboardSummary(await scanWorkspace(rootPath));
+  const analysis = await scanWorkspace(rootPath);
+  return toDashboardSummary(analysis);
 }

@@ -15,10 +15,13 @@ type WorkspaceProjectType =
   | "electron"
   | "node"
   | "python"
+  | "embedded"
+  | "esp32"
+  | "platformio"
   | "electron-react-typescript"
   | "unknown";
 
-type WorkspacePackageManager = "npm" | "pnpm" | "yarn" | "unknown";
+type WorkspacePackageManager = "npm" | "pnpm" | "yarn" | "platformio" | "unknown";
 
 type WorkspaceCapability = {
   id: string;
@@ -30,6 +33,26 @@ type WorkspaceCapability = {
 type WorkspacePackageScript = {
   name: string;
   command: string;
+};
+
+
+type EmbeddedWorkspaceAnalysis = {
+  detected: boolean;
+  platform?: string;
+  boardIdentifiers: string[];
+  environments: string[];
+  frameworks: string[];
+  firmwareSourcePath?: string;
+  platformioConfigPath?: string;
+  buildCommand?: string;
+  uploadCommand?: string;
+  serialMonitorCommand?: string;
+  cleanCommand?: string;
+  deviceProfile?: string;
+  hardwareDocumentationPaths: string[];
+  specificationPaths: string[];
+  packageFormatDocumentationPaths: string[];
+  generatedOutputTracked: boolean;
 };
 
 type WorkspaceAnalysis = {
@@ -53,6 +76,7 @@ type WorkspaceAnalysis = {
   applicationRootPath?: string;
   currentMilestone?: string;
   packageScripts: WorkspacePackageScript[];
+  embedded?: EmbeddedWorkspaceAnalysis;
   capabilities: WorkspaceCapability[];
   health: {
     score: number;
@@ -117,24 +141,6 @@ type AISnapshotRecord = {
   includedRoots: string[];
   excludedPatterns: string[];
   sizeBytes?: number;
-};
-
-type AIPackageBuilderInput = {
-  rootPath?: string;
-  developerRequest: string;
-  packageId?: string;
-};
-
-type AIPackageBuilderResult = {
-  ok: boolean;
-  message: string;
-  packageId?: string;
-  packagePath?: string;
-  files?: string[];
-  installCommand?: string;
-  buildCommand?: string;
-  suggestedCommitMessage?: string;
-  warnings?: string[];
 };
 
 function normalizeRoot(rootPath?: string) {
@@ -275,6 +281,112 @@ function detectDocumentationPaths(rootPath: string, readmePath?: string) {
   return paths;
 }
 
+
+function collectMatchingPaths(rootPath: string, folders: string[], pattern: RegExp) {
+  const matches: string[] = [];
+
+  for (const folder of folders) {
+    const absoluteFolder = path.join(rootPath, folder);
+    if (!fs.existsSync(absoluteFolder) || !fs.statSync(absoluteFolder).isDirectory()) continue;
+
+    const visit = (currentFolder: string) => {
+      for (const entry of fs.readdirSync(currentFolder, { withFileTypes: true })) {
+        const absolutePath = path.join(currentFolder, entry.name);
+        const relativePath = path.relative(rootPath, absolutePath);
+        if (entry.isDirectory()) visit(absolutePath);
+        else if (pattern.test(relativePath.replace(/\\/g, "/"))) matches.push(relativePath);
+      }
+    };
+
+    visit(absoluteFolder);
+  }
+
+  return matches.sort((a, b) => a.localeCompare(b));
+}
+
+function parsePlatformIoConfig(rootPath: string, relativePath: string) {
+  const text = fs.readFileSync(path.join(rootPath, relativePath), "utf8");
+  const environments: string[] = [];
+  const boards = new Set<string>();
+  const frameworks = new Set<string>();
+  const platforms = new Set<string>();
+  let currentEnvironment: string | undefined;
+
+  for (const rawLine of text.split(/\r?\n/)) {
+    const line = rawLine.replace(/[;#].*$/, "").trim();
+    if (!line) continue;
+    const section = line.match(/^\[env:([^\]]+)\]$/i);
+    if (section) {
+      currentEnvironment = section[1].trim();
+      environments.push(currentEnvironment);
+      continue;
+    }
+    if (!currentEnvironment) continue;
+    const property = line.match(/^([^=]+)=(.+)$/);
+    if (!property) continue;
+    const key = property[1].trim().toLowerCase();
+    const values = property[2].split(",").map((value) => value.trim()).filter(Boolean);
+    if (key === "board") values.forEach((value) => boards.add(value));
+    if (key === "framework") values.forEach((value) => frameworks.add(value));
+    if (key === "platform") values.forEach((value) => platforms.add(value));
+  }
+
+  return { environments, boards: [...boards], frameworks: [...frameworks], platforms: [...platforms] };
+}
+
+function hasTrackedGeneratedEmbeddedOutput(rootPath: string) {
+  if (!exists(rootPath, ".git")) return false;
+  try {
+    const tracked = runGit(rootPath, "ls-files .pio build firmware/build");
+    return tracked.length > 0;
+  } catch {
+    return false;
+  }
+}
+
+function analyzeEmbeddedWorkspace(rootPath: string, workflowProject: Record<string, unknown> | null): EmbeddedWorkspaceAnalysis | undefined {
+  const platformioConfigPath = findFirstExisting(rootPath, ["platformio.ini", "firmware/platformio.ini"]);
+  const firmwareSourcePath = findFirstExisting(rootPath, [
+    "src/main.cpp",
+    "firmware/src/main.cpp",
+    "firmware/main/main.cpp",
+    "main/main.cpp",
+  ]);
+  const hasEmbeddedFolders = ["firmware", "include", "lib", "boards"].some((folder) => exists(rootPath, folder));
+  if (!platformioConfigPath && !firmwareSourcePath && !hasEmbeddedFolders) return undefined;
+
+  const parsed = platformioConfigPath
+    ? parsePlatformIoConfig(rootPath, platformioConfigPath)
+    : { environments: [], boards: [], frameworks: [], platforms: [] };
+  const primaryEnvironment = parsed.environments[0];
+  const environmentSuffix = primaryEnvironment ? ` -e ${primaryEnvironment}` : "";
+  const metadata = (workflowProject?.embedded ?? workflowProject) as Record<string, unknown> | undefined;
+  const hardwareDocumentationPaths = collectMatchingPaths(rootPath, ["docs", "Documentation", "hardware"], /(^|\/)(hardware|board|enclosure|dock)[^/]*\.(md|json|ya?ml)$/i);
+  const specificationPaths = collectMatchingPaths(rootPath, ["docs", "Documentation", "hardware"], /(specification|spec|pinout|bom|schematic).*\.(md|json|ya?ml|csv)$/i);
+  const packageFormatDocumentationPaths = collectMatchingPaths(rootPath, ["docs", "Documentation"], /(package|asset|ovx).*\.(md|json|ya?ml)$/i);
+  const platform = typeof metadata?.targetPlatform === "string" ? metadata.targetPlatform : parsed.platforms[0];
+  const deviceProfile = typeof metadata?.deviceProfile === "string" ? metadata.deviceProfile : undefined;
+
+  return {
+    detected: true,
+    platform,
+    boardIdentifiers: parsed.boards,
+    environments: parsed.environments,
+    frameworks: parsed.frameworks,
+    firmwareSourcePath,
+    platformioConfigPath,
+    buildCommand: platformioConfigPath ? `platformio run${environmentSuffix}` : undefined,
+    uploadCommand: platformioConfigPath ? `platformio run${environmentSuffix} --target upload` : undefined,
+    serialMonitorCommand: platformioConfigPath ? `platformio device monitor${primaryEnvironment ? ` -e ${primaryEnvironment}` : ""}` : undefined,
+    cleanCommand: platformioConfigPath ? `platformio run${environmentSuffix} --target clean` : undefined,
+    deviceProfile,
+    hardwareDocumentationPaths,
+    specificationPaths,
+    packageFormatDocumentationPaths,
+    generatedOutputTracked: hasTrackedGeneratedEmbeddedOutput(rootPath),
+  };
+}
+
 function capability(
   id: string,
   label: string,
@@ -299,7 +411,7 @@ function scanWorkspace(rootPathInput?: string): WorkspaceAnalysis {
     ".workflowstudio/metadata.json",
   ]);
   const workflowProject = workflowMetadataPath
-    ? readJson<{ name?: string; version?: string; currentMilestone?: string }>(
+    ? readJson<Record<string, unknown> & { name?: string; version?: string; currentMilestone?: string }>(
         workspaceRoot,
         workflowMetadataPath,
       )
@@ -311,11 +423,14 @@ function scanWorkspace(rootPathInput?: string): WorkspaceAnalysis {
   const hasReadme = Boolean(readmePath);
   const hasDocs = exists(workspaceRoot, "docs") || exists(workspaceRoot, "Documentation");
   const hasWorkflowMetadata = Boolean(workflowMetadataPath);
-  const packageManager = detectPackageManager(workspaceRoot, applicationRootPath);
-  const projectType = detectProjectType(workspaceRoot, packageJson, applicationRootPath);
+  const embedded = analyzeEmbeddedWorkspace(workspaceRoot, workflowProject);
+  const packageManager = embedded?.platformioConfigPath ? "platformio" : detectPackageManager(workspaceRoot, applicationRootPath);
+  const detectedProjectType = detectProjectType(workspaceRoot, packageJson, applicationRootPath);
+  const hasEsp32 = Boolean(embedded?.boardIdentifiers.some((board) => /esp32/i.test(board)) || /esp32/i.test(embedded?.platform ?? ""));
+  const projectType: WorkspaceProjectType = embedded?.platformioConfigPath ? "platformio" : embedded ? (hasEsp32 ? "esp32" : "embedded") : detectedProjectType;
   const scripts = packageJson?.scripts ?? {};
   const packageScripts = Object.entries(scripts).map(([name, command]) => ({ name, command }));
-  const buildCommand = scripts.build ? scriptCommand(packageManager, "build") : undefined;
+  const buildCommand = embedded?.buildCommand ?? (scripts.build ? scriptCommand(packageManager, "build") : undefined);
   const devCommand = scripts.dev ? scriptCommand(packageManager, "dev") : undefined;
   const testCommand = scripts.test ? scriptCommand(packageManager, "test") : undefined;
   const hasPackageWorkflow = exists(workspaceRoot, "_packages") && exists(workspaceRoot, "_backup");
@@ -348,18 +463,27 @@ function scanWorkspace(rootPathInput?: string): WorkspaceAnalysis {
 
   if (devCommand) successes.push(`Development command detected: ${devCommand}.`);
   if (testCommand) successes.push(`Test command detected: ${testCommand}.`);
-  else warnings.push("Test command was not detected yet.");
+  else if (!embedded?.detected) warnings.push("Test command was not detected yet.");
 
-  const checks = [
-    hasGit,
-    hasPackageJson,
-    hasReadme,
-    hasDocs,
-    hasWorkflowMetadata,
-    Boolean(buildCommand),
-    hasPackageWorkflow,
-    hasSourceFolder,
-  ];
+  if (embedded?.detected) {
+    successes.push("Embedded project structure detected.");
+    if (embedded.platformioConfigPath) successes.push(`${embedded.platformioConfigPath} detected.`);
+    else warnings.push("platformio.ini was not detected.");
+    if (embedded.firmwareSourcePath) successes.push(`Firmware entry point detected: ${embedded.firmwareSourcePath}.`);
+    else warnings.push("Firmware source entry point was not detected.");
+    if (embedded.environments.length > 0) successes.push(`PlatformIO environment detected: ${embedded.environments.join(", ")}.`);
+    else warnings.push("PlatformIO board environment was not defined.");
+    if (embedded.boardIdentifiers.length > 0) successes.push(`Board target detected: ${embedded.boardIdentifiers.join(", ")}.`);
+    else warnings.push("Embedded board identifier was not detected.");
+    if (embedded.hardwareDocumentationPaths.length > 0 || embedded.specificationPaths.length > 0) successes.push("Hardware target documentation detected.");
+    else warnings.push("Hardware target documentation was not detected.");
+    if (embedded.generatedOutputTracked) warnings.push("Generated embedded build output appears to be tracked by Git.");
+    else successes.push("No tracked embedded build output was detected.");
+  }
+
+  const checks = embedded?.detected
+    ? [hasGit, Boolean(embedded.platformioConfigPath), Boolean(embedded.firmwareSourcePath), embedded.environments.length > 0, embedded.boardIdentifiers.length > 0, hasDocs, hasWorkflowMetadata, !embedded.generatedOutputTracked]
+    : [hasGit, hasPackageJson, hasReadme, hasDocs, hasWorkflowMetadata, Boolean(buildCommand), hasPackageWorkflow, hasSourceFolder];
   const score = Math.round((checks.filter(Boolean).length / checks.length) * 100);
 
   return {
@@ -383,6 +507,7 @@ function scanWorkspace(rootPathInput?: string): WorkspaceAnalysis {
     applicationRootPath,
     currentMilestone: workflowProject?.currentMilestone,
     packageScripts,
+    embedded,
     capabilities: [
       capability("git", "Git", hasGit, "Repository is available.", "Repository folder was not found."),
       capability("source", "Source", hasSourceFolder, "Source folder is available.", "src folder was not found."),
@@ -393,6 +518,14 @@ function scanWorkspace(rootPathInput?: string): WorkspaceAnalysis {
       capability("readme", "README", hasReadme, "README documentation is available.", "README.md was not found."),
       capability("docs", "Docs", hasDocs, "Documentation folder is available.", "docs folder was not found."),
       capability("workflow-metadata", "Workflow Metadata", hasWorkflowMetadata, "Workflow Studio metadata is available.", "Workflow Studio metadata was not found."),
+      ...(embedded?.detected ? [
+        capability("embedded", "Embedded Project", true, "Embedded project structure is available.", "Embedded project structure was not found."),
+        capability("platformio", "PlatformIO", Boolean(embedded.platformioConfigPath), "PlatformIO configuration is available.", "platformio.ini was not found."),
+        capability("firmware-entry", "Firmware Entry", Boolean(embedded.firmwareSourcePath), "Firmware entry point is available.", "Firmware entry point was not found."),
+        capability("board-environment", "Board Environment", embedded.environments.length > 0, "PlatformIO board environment is defined.", "PlatformIO board environment was not defined."),
+        capability("serial-monitor", "Serial Monitor", Boolean(embedded.serialMonitorCommand), "Serial monitor command is available.", "Serial monitor command was not detected."),
+        capability("hardware-docs", "Hardware Docs", embedded.hardwareDocumentationPaths.length > 0 || embedded.specificationPaths.length > 0, "Hardware documentation is available.", "Hardware documentation was not found."),
+      ] : []),
       capability("electron", "Electron", hasElectronFolder, "Electron desktop shell is available.", "electron folder was not found."),
       capability("prompts", "Prompts", hasPrompts, "Prompt library folder is available.", "prompts folder was not found."),
       capability("templates", "Templates", hasTemplates, "Template folder is available.", "templates folder was not found."),
@@ -798,281 +931,6 @@ function createAISnapshot(rootPathInput?: string) {
   };
 }
 
-
-function sanitizePackageId(value: string, fallback: string) {
-  const normalized = (value.trim() || fallback)
-    .toLowerCase()
-    .replace(/[^a-z0-9._-]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-
-  return normalized || fallback;
-}
-
-function parseGitChangedFiles(rootPath: string) {
-  const porcelain = runGit(rootPath, "status --short");
-
-  if (!porcelain) return [];
-
-  return porcelain
-    .split(/\r?\n/)
-    .map((line) => ({ status: line.slice(0, 2), filePath: line.slice(3).trim() }))
-    .map((entry) => ({
-      ...entry,
-      filePath: entry.filePath.includes(" -> ")
-        ? entry.filePath.split(" -> ").at(-1)?.trim() ?? entry.filePath
-        : entry.filePath,
-    }))
-    .filter((entry) => Boolean(entry.filePath));
-}
-
-function isSafePackageReplacement(relativePath: string) {
-  const normalized = relativePath.replace(/\\/g, "/");
-  const parts = normalized.split("/");
-
-  if (path.isAbsolute(relativePath) || normalized.includes("..")) return false;
-
-  if (
-    parts.some((part) =>
-      [".git", "node_modules", "dist", "_backup", ".vite", "coverage", "ai-snapshots"].includes(part),
-    )
-  ) {
-    return false;
-  }
-
-  if (normalized.startsWith("_packages/")) return false;
-  if (normalized === ".workflowstudio/ai-snapshots.json") return false;
-
-  return /\.(tsx?|jsx?|json|md|css|scss|html|ps1|yml|yaml|txt)$/i.test(normalized);
-}
-
-function packageReadme(input: {
-  packageId: string;
-  projectName: string;
-  developerRequest: string;
-  files: string[];
-  installCommand: string;
-  buildCommand: string;
-  suggestedCommitMessage: string;
-  warnings: string[];
-}) {
-  const fileList = input.files.map((file) => `- ${file}`).join("\n");
-  const warningList = input.warnings.length
-    ? input.warnings.map((warning) => `- ${warning}`).join("\n")
-    : "- No warnings.";
-
-  return `# ${input.packageId}
-
-AI Package Builder export for ${input.projectName}.
-
-## Developer Request
-
-${input.developerRequest.trim()}
-
-## Included Replacement Files
-
-${fileList}
-
-## Suggested Install Command
-
-\`\`\`powershell
-${input.installCommand}
-\`\`\`
-
-## Suggested Build Command
-
-\`\`\`powershell
-${input.buildCommand}
-\`\`\`
-
-## Suggested Git Commit Message
-
-\`\`\`text
-${input.suggestedCommitMessage}
-\`\`\`
-
-## Manual Test Checklist
-
-- Install the package with the standard Workflow Studio package installer.
-- Run the suggested build command.
-- Open Workflow Studio and confirm the changed feature still loads.
-- Confirm existing Dashboard, Projects, Packages, Documentation, AI, AI Development, Git, Templates, and Settings pages still render.
-- Review the changed files before committing.
-
-## Validation Notes
-
-${warningList}
-`;
-}
-
-function validateGeneratedPackage(packagePath: string) {
-  const manifestPath = path.join(packagePath, "manifest.json");
-  const readmePath = path.join(packagePath, "README.md");
-  const warnings: string[] = [];
-
-  if (!fs.existsSync(manifestPath)) warnings.push("manifest.json is missing.");
-  if (!fs.existsSync(readmePath)) warnings.push("README.md is missing.");
-
-  if (!fs.existsSync(manifestPath)) return warnings;
-
-  const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8")) as {
-    files?: Array<{ source?: string; target?: string }>;
-  };
-
-  if (!manifest.files?.length) warnings.push("manifest files array is empty.");
-
-  for (const file of manifest.files ?? []) {
-    if (!file.source || !file.target) {
-      warnings.push("A manifest file entry is missing source or target.");
-      continue;
-    }
-
-    if (!fs.existsSync(path.join(packagePath, file.source))) {
-      warnings.push(`Source file is missing: ${file.source}.`);
-    }
-  }
-
-  return warnings;
-}
-
-function createAIPackage(input: AIPackageBuilderInput): AIPackageBuilderResult {
-  const rootPath = normalizeRoot(input.rootPath);
-  const developerRequest = input.developerRequest.trim();
-  const warnings: string[] = [];
-
-  if (!developerRequest) {
-    return {
-      ok: false,
-      message: "Developer Request is required before building a package.",
-      warnings: ["No Developer Request was provided."],
-    };
-  }
-
-  if (!exists(rootPath, ".git")) {
-    return {
-      ok: false,
-      message: "AI Package Builder needs a Git workspace so it can detect changed files safely.",
-      warnings: ["Git repository was not detected."],
-    };
-  }
-
-  const analysis = scanWorkspace(rootPath);
-  const rawChanges = parseGitChangedFiles(rootPath);
-  const safeChanges = rawChanges
-    .filter((entry) => !entry.status.includes("D"))
-    .map((entry) => entry.filePath)
-    .filter((filePath) => isSafePackageReplacement(filePath))
-    .filter((filePath) => fs.existsSync(path.join(rootPath, filePath)) && fs.statSync(path.join(rootPath, filePath)).isFile())
-    .sort((a, b) => a.localeCompare(b));
-
-  const skippedChanges = rawChanges
-    .map((entry) => entry.filePath)
-    .filter((filePath) => !safeChanges.includes(filePath));
-
-  if (skippedChanges.length) {
-    warnings.push(`Skipped ${skippedChanges.length} changed file${skippedChanges.length === 1 ? "" : "s"} that cannot be safely packaged as replacement files.`);
-  }
-
-  if (!safeChanges.length) {
-    return {
-      ok: false,
-      message: "No safe changed replacement files were found, so no package was created.",
-      files: [],
-      warnings: [
-        ...warnings,
-        "Make the milestone code changes first, then run AI Package Builder again.",
-      ],
-    };
-  }
-
-  const fallbackId = `${analysis.projectName}-ai-package-${safeTimestamp()}`;
-  const packageId = sanitizePackageId(input.packageId ?? "", fallbackId);
-  const packagePath = path.join(rootPath, "_packages", packageId);
-  const filesRoot = path.join(packagePath, "files");
-  const suggestedCommitMessage = developerRequest.split(/\r?\n/)[0]?.replace(/^#+\s*/, "").slice(0, 72) || `Apply ${packageId}`;
-  const buildCommand = analysis.buildCommand ?? "npm run build";
-  const installCommand = `.\\tools\\package\\install-package.ps1 "${packagePath}"`;
-
-  fs.rmSync(packagePath, { recursive: true, force: true });
-  fs.mkdirSync(filesRoot, { recursive: true });
-
-  for (const relativePath of safeChanges) {
-    const source = path.join(rootPath, relativePath);
-    const target = path.join(filesRoot, relativePath);
-    fs.mkdirSync(path.dirname(target), { recursive: true });
-    fs.copyFileSync(source, target);
-  }
-
-  const manifest = {
-    packageId,
-    name: packageId,
-    version: "1.0.0",
-    targetProject: analysis.projectName,
-    description: `AI Package Builder export for ${analysis.projectName}.`,
-    generatedBy: "Workflow Studio AI Package Builder",
-    generatedAt: new Date().toISOString(),
-    developerRequest,
-    files: safeChanges.map((relativePath) => ({
-      source: path.join("files", relativePath).replace(/\\/g, "/"),
-      target: relativePath.replace(/\\/g, "/"),
-    })),
-    suggestedInstallCommand: installCommand,
-    suggestedBuildCommand: buildCommand,
-    suggestedCommitMessage,
-    manualTestChecklist: [
-      "Install the package with the standard Workflow Studio installer.",
-      "Run the suggested build command.",
-      "Open Workflow Studio and confirm the changed feature still loads.",
-      "Review the changed files before committing.",
-    ],
-    validation: {
-      requiresChangedFiles: true,
-      skippedChanges,
-      warnings,
-    },
-  };
-
-  writeJson(path.join(packagePath, "manifest.json"), manifest);
-  fs.writeFileSync(
-    path.join(packagePath, "README.md"),
-    packageReadme({
-      packageId,
-      projectName: analysis.projectName,
-      developerRequest,
-      files: safeChanges,
-      installCommand,
-      buildCommand,
-      suggestedCommitMessage,
-      warnings,
-    }),
-    "utf8",
-  );
-
-  const validationWarnings = validateGeneratedPackage(packagePath);
-
-  if (validationWarnings.length) {
-    return {
-      ok: false,
-      message: "Package structure validation failed.",
-      packageId,
-      packagePath,
-      files: safeChanges,
-      warnings: [...warnings, ...validationWarnings],
-    };
-  }
-
-  return {
-    ok: true,
-    message: `Created installable package: ${packageId}`,
-    packageId,
-    packagePath,
-    files: safeChanges,
-    installCommand,
-    buildCommand,
-    suggestedCommitMessage,
-    warnings,
-  };
-}
-
 async function openAISnapshotFolder(rootPathInput?: string): Promise<OpenPathResult> {
   const rootPath = normalizeRoot(rootPathInput);
   const folder = snapshotRoot(rootPath);
@@ -1093,7 +951,6 @@ ipcMain.handle("workspace:listTemplates", (_event, rootPath?: string) => listTem
 ipcMain.handle("workspace:createAISnapshot", (_event, rootPath?: string) => createAISnapshot(rootPath));
 ipcMain.handle("workspace:listAISnapshots", (_event, rootPath?: string) => listAISnapshots(rootPath));
 ipcMain.handle("workspace:openAISnapshotFolder", (_event, rootPath?: string) => openAISnapshotFolder(rootPath));
-ipcMain.handle("workspace:createAIPackage", (_event, input: AIPackageBuilderInput) => createAIPackage(input));
 ipcMain.handle("workspace:openPath", (_event, rootPath: string | undefined, relativePath: string) =>
   openWorkspacePath(rootPath, relativePath),
 );

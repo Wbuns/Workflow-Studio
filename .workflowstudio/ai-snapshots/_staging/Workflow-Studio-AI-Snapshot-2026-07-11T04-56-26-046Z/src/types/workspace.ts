@@ -14,15 +14,6 @@ export type WorkspaceProjectMetadata = {
   backupFolder: string;
   documentationPaths?: string[];
   tagline?: string;
-  targetPlatform?: string;
-  boardIdentifier?: string;
-  framework?: string;
-  firmwareSourcePath?: string;
-  uploadCommand?: string;
-  serialMonitorCommand?: string;
-  cleanCommand?: string;
-  deviceProfile?: string;
-  hardwareConstraints?: string[];
 };
 
 export type WorkspaceAiContext = {
