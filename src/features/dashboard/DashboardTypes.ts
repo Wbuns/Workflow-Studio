@@ -1,3 +1,4 @@
+import type { SmartRecommendation } from "../../types/recommendation";
 import type { WorkspaceAnalysis, WorkspaceCapability } from "../../types/workspaceAnalysis";
 
 export type ProjectLifecyclePhase = "Planning" | "Implementation" | "Testing" | "Release";
@@ -28,6 +29,7 @@ export type DashboardSummary = {
   readinessStatus: "Excellent" | "Good" | "Developing";
   readinessCategories: ReadinessCategory[];
   guidance: GuidanceItem[];
+  recommendations: SmartRecommendation[];
   gitEnabled: boolean;
   packageFolder: string;
   backupFolder: string;

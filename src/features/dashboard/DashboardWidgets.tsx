@@ -147,11 +147,37 @@ export function DashboardWidgets({ summary, onNavigate }: DashboardWidgetsProps)
           </article>
         )}
 
-        <article className="detail-panel guidance-panel">
-          <div className="section-heading"><div><h3>Recommended Next Steps</h3><p>Actions are ordered for the current {summary.lifecyclePhase.toLowerCase()} phase.</p></div></div>
-          <ul className="guidance-list">
-            {summary.guidance.map((item) => <li className={`guidance-${item.kind}`} key={`${item.kind}-${item.label}`}><span>{item.kind === "warning" ? "Attention" : "Next"}</span>{item.label}</li>)}
-          </ul>
+        <article className="detail-panel smart-recommendations-panel">
+          <div className="section-heading">
+            <div>
+              <h3>Smart Recommendations</h3>
+              <p>Prioritized from the current lifecycle, readiness, detected files, and workspace notices.</p>
+            </div>
+            <span className="recommendation-count">{summary.recommendations.length}</span>
+          </div>
+          <div className="smart-recommendation-list">
+            {summary.recommendations.map((recommendation) => (
+              <article className={`smart-recommendation recommendation-${recommendation.priority}`} key={recommendation.id}>
+                <div className="smart-recommendation-heading">
+                  <div>
+                    <span className="recommendation-category">{recommendation.category}</span>
+                    <h4>{recommendation.title}</h4>
+                  </div>
+                  <span className={`recommendation-priority priority-${recommendation.priority}`}>{recommendation.priority}</span>
+                </div>
+                <p>{recommendation.detail}</p>
+                {recommendation.actionLabel && recommendation.targetPageId && (
+                  <button
+                    type="button"
+                    className={recommendation.priority === "high" ? "primary-button" : "secondary-button"}
+                    onClick={() => onNavigate(recommendation.targetPageId!)}
+                  >
+                    {recommendation.actionLabel}
+                  </button>
+                )}
+              </article>
+            ))}
+          </div>
         </article>
 
         <article className="detail-panel workspace-commands-panel">

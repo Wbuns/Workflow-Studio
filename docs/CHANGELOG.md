@@ -161,3 +161,18 @@ Completed
 - AI snapshot activity
 - Current uncommitted workspace change indicator
 - Timeline filters and direct location opening
+
+# v1.4.6 — Smart Recommendations
+
+## Added
+
+- Shared smart recommendation types and recommendation service.
+- Priority-aware recommendations based on lifecycle, readiness, metadata, documentation, build configuration, embedded firmware state, and analyzer notices.
+- High, medium, and low recommendation levels.
+- Direct actions that route to the relevant Workflow Studio page.
+- Project-agnostic embedded recommendations driven by workspace analysis.
+
+## Changed
+
+- Replaced the simple next-step list with richer recommendation cards that explain why each action matters.
+

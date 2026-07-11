@@ -1,3 +1,4 @@
+import { buildSmartRecommendations } from "../../services/RecommendationService";
 import { scanWorkspace } from "../../services/WorkspaceScanner";
 import type { WorkspaceAnalysis } from "../../types/workspaceAnalysis";
 import type { DashboardSummary, ProjectLifecyclePhase, ReadinessCategory, ReadinessStatus } from "./DashboardTypes";
@@ -133,6 +134,7 @@ function toDashboardSummary(analysis: WorkspaceAnalysis): DashboardSummary {
   const readinessCategories = buildReadinessCategories(analysis, lifecyclePhase);
   const readinessScore = calculateReadiness(readinessCategories);
   const nextActions = getNextActions(analysis, lifecyclePhase);
+  const recommendations = buildSmartRecommendations(analysis, { lifecyclePhase, readinessScore });
   const guidance = [
     ...nextActions.map((label) => ({ label, kind: "next" as const })),
     ...analysis.health.warnings
@@ -160,6 +162,7 @@ function toDashboardSummary(analysis: WorkspaceAnalysis): DashboardSummary {
     readinessStatus: readinessScore >= 90 ? "Excellent" : readinessScore >= 70 ? "Good" : "Developing",
     readinessCategories,
     guidance,
+    recommendations,
     gitEnabled: analysis.hasGit,
     packageFolder: "_packages",
     backupFolder: "_backup",

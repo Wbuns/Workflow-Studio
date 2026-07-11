@@ -1121,3 +1121,85 @@ button {
 .timeline-open-button { margin-top:10px; border:0; padding:0; color:#93c5fd; background:transparent; cursor:pointer; }
 .timeline-empty { padding:34px 22px; }
 @media (max-width:720px) { .timeline-hero { flex-direction:column; } .timeline-event-heading { flex-direction:column; gap:6px; } .timeline-event-heading time { order:-1; } }
+
+/* v1.4.6 Smart Recommendations */
+.smart-recommendations-panel {
+  grid-column: 1 / -1;
+}
+
+.recommendation-count {
+  min-width: 2rem;
+  height: 2rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: rgba(90, 138, 255, 0.14);
+  color: var(--accent-strong, #8fb0ff);
+  font-weight: 700;
+}
+
+.smart-recommendation-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.85rem;
+}
+
+.smart-recommendation {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-height: 170px;
+  padding: 1rem;
+  border: 1px solid var(--panel-border, rgba(255, 255, 255, 0.09));
+  border-left-width: 3px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.smart-recommendation.recommendation-high { border-left-color: #ef7d7d; }
+.smart-recommendation.recommendation-medium { border-left-color: #e7bd65; }
+.smart-recommendation.recommendation-low { border-left-color: #79a8e8; }
+
+.smart-recommendation-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.smart-recommendation h4 {
+  margin: 0.2rem 0 0;
+}
+
+.smart-recommendation p {
+  margin: 0;
+  color: var(--muted-text, #a8b0c0);
+  line-height: 1.55;
+  flex: 1;
+}
+
+.smart-recommendation button {
+  align-self: flex-start;
+}
+
+.recommendation-category,
+.recommendation-priority {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+
+.recommendation-category { color: var(--muted-text, #a8b0c0); }
+.recommendation-priority {
+  padding: 0.3rem 0.55rem;
+  border-radius: 999px;
+}
+.priority-high { background: rgba(239, 125, 125, 0.14); color: #f2a0a0; }
+.priority-medium { background: rgba(231, 189, 101, 0.14); color: #efd18e; }
+.priority-low { background: rgba(121, 168, 232, 0.14); color: #a9c9f2; }
+
+@media (max-width: 900px) {
+  .smart-recommendation-list { grid-template-columns: 1fr; }
+}
