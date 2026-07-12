@@ -1,3 +1,11 @@
+# v2.1.5.4 — Workspace Preflight Validation
+
+## Added
+
+- Detailed preflight checks for metadata, Git, documentation, README, build/test commands, AI snapshots, package tooling, and workspace health.
+- In-app validation score and categorized results.
+- Passed, warning, and failed validation states.
+
 # v2.1.5.3 — Build Automation Console
 
 ## Added

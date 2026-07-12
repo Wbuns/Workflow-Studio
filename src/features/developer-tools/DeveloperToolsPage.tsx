@@ -58,11 +58,11 @@ export function DeveloperToolsPage({
           <h3>Package Automation</h3>
           <p>Find, extract, validate, back up, and install downloaded Workflow Studio packages.</p>
           <div className="developer-tool-actions">
-            <button type="button" onClick={() => runAction("latest-package", () => DeveloperWorkflowService.installLatestPackageAndBuild(rootPath))} disabled={!rootPath || Boolean(busyAction)}>
-              Install Latest Package & Build
+            <button type="button" onClick={() => runAction("latest-package", () => DeveloperWorkflowService.installLatestPackage(rootPath))} disabled={!rootPath || Boolean(busyAction)}>
+              Install Latest Downloaded Package
             </button>
-            <button type="button" onClick={() => runAction("package-picker", () => DeveloperWorkflowService.installPackageAndBuild(rootPath))} disabled={!rootPath || Boolean(busyAction)}>
-              Install Package & Build…
+            <button type="button" onClick={() => runAction("package-picker", () => DeveloperWorkflowService.installPackage(rootPath))} disabled={!rootPath || Boolean(busyAction)}>
+              Install Package…
             </button>
             <button type="button" onClick={() => runAction("downloads", () => DeveloperWorkflowService.openDownloads())} disabled={Boolean(busyAction)}>
               Open Downloads

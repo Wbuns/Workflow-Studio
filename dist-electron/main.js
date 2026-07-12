@@ -1611,12 +1611,20 @@ async function openDeveloperPath(folderPath, label) {
 function validateDeveloperWorkspace(rootPathInput) {
     const rootPath = normalizeRoot(rootPathInput);
     const analysis = scanWorkspace(rootPath);
+    const gitStatus = analysis.hasGit ? getGitStatus(rootPath) : undefined;
+    const snapshotHistory = path.join(rootPath, ".workflowstudio", "ai-snapshots.json");
+    const packageInstaller = path.join(rootPath, "tools", "package", "install-package.ps1");
     const checks = [
         { id: "root", label: "Workspace root", status: fs.existsSync(rootPath) ? "passed" : "failed", detail: rootPath },
         { id: "metadata", label: "Project metadata", status: analysis.hasWorkflowMetadata ? "passed" : "warning", detail: analysis.hasWorkflowMetadata ? "Detected .workflowstudio/project.json." : "Project metadata was not detected." },
-        { id: "git", label: "Git repository", status: analysis.hasGit ? "passed" : "warning", detail: analysis.hasGit ? "Git repository detected." : "Git repository was not detected." },
-        { id: "documentation", label: "Documentation", status: analysis.hasDocs ? "passed" : "warning", detail: analysis.hasDocs ? "Documentation folders detected." : "Documentation folder was not detected." },
+        { id: "git", label: "Git repository", status: analysis.hasGit ? "passed" : "warning", detail: analysis.hasGit ? `Branch ${gitStatus?.branch || "detected"}; ${gitStatus?.status === "clean" ? "working tree clean" : "working tree has changes"}.` : "Git repository was not detected." },
+        { id: "documentation", label: "Documentation", status: analysis.hasDocs ? "passed" : "warning", detail: analysis.hasDocs ? `${analysis.documentationPaths.length} documentation location(s) detected.` : "Documentation folder was not detected." },
+        { id: "readme", label: "README", status: analysis.hasReadme ? "passed" : "warning", detail: analysis.readmePath ?? "README was not detected." },
         { id: "build", label: "Build command", status: analysis.buildCommand ? "passed" : "warning", detail: analysis.buildCommand ?? "Build command was not detected." },
+        { id: "test", label: "Test command", status: analysis.testCommand ? "passed" : "warning", detail: analysis.testCommand ?? "Test command was not detected." },
+        { id: "snapshots", label: "AI snapshot history", status: fs.existsSync(snapshotHistory) ? "passed" : "warning", detail: fs.existsSync(snapshotHistory) ? "AI snapshot history detected." : "AI snapshot history has not been created." },
+        { id: "package-installer", label: "Package installer", status: fs.existsSync(packageInstaller) ? "passed" : "warning", detail: fs.existsSync(packageInstaller) ? "Standard package installer detected." : "Standard package installer was not detected." },
+        { id: "health", label: "Workspace health", status: analysis.health.score >= 80 ? "passed" : analysis.health.score >= 50 ? "warning" : "failed", detail: `${analysis.health.score}% — ${analysis.health.warnings.join(" ") || "No workspace warnings."}` },
     ];
     const passed = checks.filter((check) => check.status === "passed").length;
     const failed = checks.some((check) => check.status === "failed");

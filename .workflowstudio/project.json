@@ -1,8 +1,8 @@
 {
   "name": "Workflow Studio",
   "description": "A desktop tool for package-based AI-assisted software development.",
-  "version": "2.1.5.3",
-  "currentMilestone": "v2.1.5.3-build-automation-console",
+  "version": "2.1.5.4-a",
+  "currentMilestone": "v2.1.5.4a-git-status-validation-fix",
   "projectType": "electron-react-typescript",
   "buildCommand": "npm run build",
   "testCommand": "",
@@ -11,5 +11,5 @@
   "documentationPaths": [
     "docs"
   ],
-  "status": "Build automation console complete"
+  "status": "Workspace preflight validation Git status fix"
 }
