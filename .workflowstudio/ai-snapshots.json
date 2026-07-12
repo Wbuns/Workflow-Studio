@@ -1,6 +1,41 @@
 {
   "snapshots": [
     {
+      "id": "Workflow-Studio-AI-Snapshot-2026-07-12T17-59-24-249Z",
+      "name": "Workflow-Studio-AI-Snapshot-2026-07-12T17-59-24-249Z.zip",
+      "filePath": "C:\\Users\\mitch\\Desktop\\GPT Workflow Studio\\.workflowstudio\\ai-snapshots\\Workflow-Studio-AI-Snapshot-2026-07-12T17-59-24-249Z.zip",
+      "createdAt": "2026-07-12T17:59:26.638Z",
+      "rootPath": "C:\\Users\\mitch\\Desktop\\GPT Workflow Studio",
+      "includedRoots": [
+        "docs",
+        "prompts",
+        "templates",
+        "tools",
+        "src",
+        "electron",
+        "README.md",
+        "readme.md",
+        "package.json",
+        "package-lock.json",
+        "tsconfig.json",
+        "tsconfig.app.json",
+        "tsconfig.electron.json",
+        "vite.config.ts",
+        ".gitignore",
+        ".workflowstudio/project.json"
+      ],
+      "excludedPatterns": [
+        "node_modules",
+        "dist",
+        ".git",
+        "_backup",
+        ".vite",
+        "coverage",
+        "*.log"
+      ],
+      "sizeBytes": 214998
+    },
+    {
       "id": "Workflow-Studio-AI-Snapshot-2026-07-12T08-36-43-638Z",
       "name": "Workflow-Studio-AI-Snapshot-2026-07-12T08-36-43-638Z.zip",
       "filePath": "C:\\Users\\mitch\\Desktop\\GPT Workflow Studio\\.workflowstudio\\ai-snapshots\\Workflow-Studio-AI-Snapshot-2026-07-12T08-36-43-638Z.zip",
@@ -239,16 +274,6 @@
       "includedRoots": [],
       "excludedPatterns": [],
       "sizeBytes": 154181
-    },
-    {
-      "id": "Workflow-Studio-AI-Snapshot-2026-07-11T04-56-26-046Z",
-      "name": "Workflow-Studio-AI-Snapshot-2026-07-11T04-56-26-046Z.zip",
-      "filePath": "C:\\Users\\mitch\\Desktop\\GPT Workflow Studio\\.workflowstudio\\ai-snapshots\\Workflow-Studio-AI-Snapshot-2026-07-11T04-56-26-046Z.zip",
-      "createdAt": "2026-07-11T04:56:26.589Z",
-      "rootPath": "C:\\Users\\mitch\\Desktop\\GPT Workflow Studio",
-      "includedRoots": [],
-      "excludedPatterns": [],
-      "sizeBytes": 136154
     }
   ]
 }

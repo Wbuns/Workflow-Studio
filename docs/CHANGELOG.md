@@ -1,3 +1,16 @@
+# v2.1.4 — Active Workspace Transition Coordination
+
+## Added
+
+- Typed active-workspace transition event.
+- Shared subscription API for project-aware services.
+- Clean remounting of project-scoped feature pages when switching projects.
+
+## Improved
+
+- Prevented stale project state from remaining visible after a workspace switch.
+- Preserved explicit workspace-root overrides and existing UI behavior.
+
 # v2.1.3 — Active Workspace Service
 
 ## Added

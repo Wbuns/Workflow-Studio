@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { CommandPalette } from "../components/CommandPalette/CommandPalette";
 import { Header } from "../components/Header/Header";
 import { Sidebar } from "../components/Sidebar/Sidebar";
@@ -18,6 +18,7 @@ import {
 } from "../services/WorkspaceRegistryService";
 import type { WorkspaceRegistryState } from "../types/workspaceRegistry";
 import { loadWorkspacePreferences, updateWorkspacePreferences } from "../services/WorkspacePreferencesService";
+import { notifyActiveWorkspaceChanged } from "../services/ActiveWorkspaceService";
 import "./App.css";
 
 function getInitialPageId() {
@@ -60,6 +61,20 @@ function App() {
     () => getActiveProject(workspaceRegistry),
     [workspaceRegistry],
   );
+
+  const previousWorkspaceRef = useRef(activeWorkspace);
+
+  useEffect(() => {
+    const previousWorkspace = previousWorkspaceRef.current;
+
+    if (previousWorkspace?.id !== activeWorkspace?.id) {
+      notifyActiveWorkspaceChanged({
+        previousWorkspace,
+        activeWorkspace,
+      });
+      previousWorkspaceRef.current = activeWorkspace;
+    }
+  }, [activeWorkspace]);
 
   const recentWorkspaces = useMemo(
     () => getRecentProjects(workspaceRegistry),
@@ -117,6 +132,7 @@ function App() {
         onToggleCollapsed={() => setSidebarCollapsed((current) => !current)}
       />
       <Workspace
+        key={activeWorkspace?.id ?? "no-active-workspace"}
         activePage={activePage}
         activeWorkspace={activeWorkspace}
         workspaceRegistry={workspaceRegistry}

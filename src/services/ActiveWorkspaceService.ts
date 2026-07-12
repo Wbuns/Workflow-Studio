@@ -31,3 +31,35 @@ export function getActiveWorkspaceRoot(): string | undefined {
 export function resolveWorkspaceRoot(rootPath?: string): string | undefined {
   return rootPath ?? getActiveWorkspaceRoot();
 }
+
+export const ACTIVE_WORKSPACE_CHANGED_EVENT = "workflowstudio:active-workspace-changed";
+
+export type ActiveWorkspaceChangedDetail = {
+  previousWorkspace?: WorkspaceRecord;
+  activeWorkspace?: WorkspaceRecord;
+};
+
+export function notifyActiveWorkspaceChanged(
+  detail: ActiveWorkspaceChangedDetail,
+): void {
+  window.dispatchEvent(
+    new CustomEvent<ActiveWorkspaceChangedDetail>(
+      ACTIVE_WORKSPACE_CHANGED_EVENT,
+      { detail },
+    ),
+  );
+}
+
+export function subscribeToActiveWorkspaceChanges(
+  listener: (detail: ActiveWorkspaceChangedDetail) => void,
+): () => void {
+  const handleChange = (event: Event) => {
+    listener((event as CustomEvent<ActiveWorkspaceChangedDetail>).detail);
+  };
+
+  window.addEventListener(ACTIVE_WORKSPACE_CHANGED_EVENT, handleChange);
+
+  return () => {
+    window.removeEventListener(ACTIVE_WORKSPACE_CHANGED_EVENT, handleChange);
+  };
+}

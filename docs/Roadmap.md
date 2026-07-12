@@ -21,6 +21,13 @@ Stabilize and document the complete single-project daily-driver workflow.
 
 ### v2.1 — Multi-Project Workspace
 
+Completed foundations:
+
+- Workspace Registry
+- Project Registration
+- Active Workspace Service
+- Active Workspace Transition Coordination
+
 - Workspace Hub
 - Recent and favorite projects
 - Fast project switching
