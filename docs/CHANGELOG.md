@@ -340,3 +340,24 @@ Completed
 - Completed the single-project daily-driver polish series.
 - Synchronized package and project release metadata.
 - Updated README and roadmap for v2.1 Multi-Project Workspace.
+
+# v2.1.1 — Workspace Registry Foundation
+
+## Added
+
+- Versioned application-level Workspace Registry model.
+- Registered, active, recent, and favorite project state.
+- Project registration, removal, selection, favorite, and registry selector operations.
+- Latest-known project health and registration timestamps.
+- Automatic migration from the legacy recent-workspaces local-storage format.
+
+## Changed
+
+- Application workspace selection now consumes canonical registry selectors.
+- Registry persistence is independent from project `.workflowstudio` metadata.
+
+## Preserved
+
+- Existing header workspace switching and folder-opening behavior.
+- Existing Workspace Intelligence analysis flow.
+- Current visual design and package safety behavior.

@@ -8,6 +8,8 @@ import { WorkspaceSearch } from "../components/WorkspaceSearch/WorkspaceSearch";
 import { navigationItems } from "../data/navigation";
 import {
   loadWorkspaceRegistry,
+  getActiveProject,
+  getRecentProjects,
   openWorkspaceFolder,
   selectWorkspace,
 } from "../services/WorkspaceRegistryService";
@@ -26,8 +28,11 @@ function App() {
     () => Boolean(loadWorkspacePreferences().sidebarCollapsed),
   );
   const [workspaceRegistry, setWorkspaceRegistry] = useState<WorkspaceRegistryState>({
-    activeWorkspaceId: "",
-    recentWorkspaces: [],
+    schemaVersion: 1,
+    projects: [],
+    activeProjectId: "",
+    recentProjectIds: [],
+    updatedAt: new Date().toISOString(),
   });
 
   useEffect(() => {
@@ -48,13 +53,15 @@ function App() {
     navigationItems.find((item) => item.id === activePageId) ??
     navigationItems[0];
 
-  const activeWorkspace = useMemo(() => {
-    return (
-      workspaceRegistry.recentWorkspaces.find(
-        (workspace) => workspace.id === workspaceRegistry.activeWorkspaceId,
-      ) ?? workspaceRegistry.recentWorkspaces[0]
-    );
-  }, [workspaceRegistry]);
+  const activeWorkspace = useMemo(
+    () => getActiveProject(workspaceRegistry),
+    [workspaceRegistry],
+  );
+
+  const recentWorkspaces = useMemo(
+    () => getRecentProjects(workspaceRegistry),
+    [workspaceRegistry],
+  );
 
   useEffect(() => {
     updateWorkspacePreferences({ activePageId });
@@ -82,7 +89,7 @@ function App() {
       <Header
         activePage={activePage}
         activeWorkspace={activeWorkspace}
-        recentWorkspaces={workspaceRegistry.recentWorkspaces}
+        recentWorkspaces={recentWorkspaces}
         onOpenWorkspace={handleOpenWorkspace}
         onSelectWorkspace={handleSelectWorkspace}
       />
