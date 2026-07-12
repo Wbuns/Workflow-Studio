@@ -308,3 +308,9 @@ Completed
 
 - Manual commands now live under an Advanced section.
 - Project status now reflects the completed v2.0.5 orchestrator and active release-candidate polish.
+
+
+# v2.0.6.2 — Dashboard and Sidebar Polish
+
+- Added persistent collapsed sidebar mode.
+- Refined Dashboard spacing and responsive card behavior.

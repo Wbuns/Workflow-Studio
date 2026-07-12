@@ -15,6 +15,7 @@ import type { WorkspaceRegistryState } from "../types/workspaceRegistry";
 import "./App.css";
 
 const ACTIVE_PAGE_KEY = "workflowstudio.activePage";
+const SIDEBAR_COLLAPSED_KEY = "workflowstudio.sidebarCollapsed";
 
 function getInitialPageId() {
   const saved = window.sessionStorage.getItem(ACTIVE_PAGE_KEY);
@@ -23,6 +24,9 @@ function getInitialPageId() {
 
 function App() {
   const [activePageId, setActivePageId] = useState(getInitialPageId);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(
+    () => window.localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === "true",
+  );
   const [workspaceRegistry, setWorkspaceRegistry] = useState<WorkspaceRegistryState>({
     activeWorkspaceId: "",
     recentWorkspaces: [],
@@ -58,6 +62,10 @@ function App() {
     window.sessionStorage.setItem(ACTIVE_PAGE_KEY, activePageId);
   }, [activePageId]);
 
+  useEffect(() => {
+    window.localStorage.setItem(SIDEBAR_COLLAPSED_KEY, String(sidebarCollapsed));
+  }, [sidebarCollapsed]);
+
   function handleNavigate(pageId: string) {
     setActivePageId(pageId);
   }
@@ -72,7 +80,7 @@ function App() {
   }
 
   return (
-    <div className="app-shell">
+    <div className={sidebarCollapsed ? "app-shell sidebar-collapsed" : "app-shell"}>
       <Header
         activePage={activePage}
         activeWorkspace={activeWorkspace}
@@ -83,7 +91,9 @@ function App() {
       <Sidebar
         activePageId={activePageId}
         navigationItems={navigationItems}
+        collapsed={sidebarCollapsed}
         onNavigate={handleNavigate}
+        onToggleCollapsed={() => setSidebarCollapsed((current) => !current)}
       />
       <Workspace activePage={activePage} activeWorkspace={activeWorkspace} onNavigate={handleNavigate} />
       <StatusBar activePage={activePage} activeWorkspace={activeWorkspace} />

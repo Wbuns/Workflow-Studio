@@ -1528,3 +1528,35 @@ button:active:not(:disabled) { transform:translateY(1px); }
 .project-insight.insight-positive { border-left: 3px solid #55c995; }
 .project-insight.insight-attention { border-left: 3px solid #f0b65e; }
 .project-insight.insight-information { border-left: 3px solid #6da8ff; }
+
+/* v2.0.6.2 Dashboard and Sidebar Polish */
+.app-shell { transition: grid-template-columns .2s ease; }
+.app-shell.sidebar-collapsed { grid-template-columns: 82px minmax(0, 1fr); }
+.app-sidebar { position: relative; overflow: hidden; transition: padding .2s ease; }
+.brand { min-height: 48px; }
+.brand-copy { min-width: 0; overflow: hidden; white-space: nowrap; }
+.sidebar-collapse-button { width:28px;height:28px;margin-left:auto;flex:0 0 auto;display:grid;place-items:center;border:1px solid rgba(148,163,184,.2);border-radius:8px;color:#94a3b8;background:rgba(148,163,184,.06);cursor:pointer; }
+.sidebar-collapse-button:hover { color:#f8fafc;border-color:rgba(96,165,250,.42);background:rgba(37,99,235,.15); }
+.nav-item-icon { width:20px;flex:0 0 20px;display:inline-grid;place-items:center;color:#93c5fd;font-size:15px; }
+.nav-item-label { overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
+.app-sidebar.collapsed { padding:20px 13px; }
+.app-sidebar.collapsed .brand { justify-content:center;gap:0; }
+.app-sidebar.collapsed .brand-copy { width:0;opacity:0; }
+.app-sidebar.collapsed .sidebar-collapse-button { position:absolute;top:72px;left:27px;z-index:2; }
+.app-sidebar.collapsed .nav-list { margin-top:34px;gap:15px; }
+.app-sidebar.collapsed .nav-group { gap:5px; }
+.app-sidebar.collapsed .nav-group + .nav-group { padding-top:10px; }
+.app-sidebar.collapsed .nav-group-label { height:1px;padding:0 8px; }
+.nav-group-divider { display:block;height:1px;background:rgba(148,163,184,.16); }
+.app-sidebar.collapsed .nav-item { justify-content:center;padding:11px 8px; }
+.app-sidebar.collapsed .nav-item-label,.app-sidebar.collapsed .nav-item.active::after { display:none; }
+.project-workspace-layout { gap:14px;margin-top:14px; }
+.workspace-status-grid { gap:10px; }
+.workspace-stat { min-height:108px;align-content:start;padding:16px; }
+.workspace-card { padding:18px; }
+.project-workspace-main,.project-workspace-secondary { gap:14px; }
+.workspace-card-heading { margin-bottom:13px; }
+.project-insight,.workspace-recommendation { min-height:146px; }
+.workspace-action-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+.workspace-action-grid button { min-height:42px; }
+@media (max-width:1050px){.app-shell:not(.sidebar-collapsed){grid-template-columns:220px minmax(0,1fr)}.workspace{padding:22px}}
