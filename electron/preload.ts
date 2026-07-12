@@ -25,6 +25,8 @@ contextBridge.exposeInMainWorld("workflowStudio", {
       ipcRenderer.invoke("workspace:getAIPackageReadiness", rootPath),
     createAIPackage: (input: { rootPath?: string; developerRequest: string; packageId?: string }) =>
       ipcRenderer.invoke("workspace:createAIPackage", input),
+    importGeneratedPackage: (rootPath?: string, sourcePath?: string) =>
+      ipcRenderer.invoke("workspace:importGeneratedPackage", rootPath, sourcePath),
     runCommand: (rootPath: string | undefined, commandId: string, approvedPermission?: "interactive" | "device-changing") =>
       ipcRenderer.invoke("workspace:runCommand", rootPath, commandId, approvedPermission),
     cancelCommand: (executionId: string) =>

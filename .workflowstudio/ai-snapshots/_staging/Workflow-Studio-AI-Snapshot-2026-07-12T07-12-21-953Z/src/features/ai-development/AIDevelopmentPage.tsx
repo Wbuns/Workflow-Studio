@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type DragEvent } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createDevelopmentSession } from "../../services/DevelopmentSessionService";
 import type { NavigationItem } from "../../types/navigation";
 import type { WorkspaceRecord } from "../../types/workspaceRegistry";
@@ -11,7 +11,6 @@ import {
   formatBytes,
   getGitStatus,
   getAIPackageReadiness,
-  importGeneratedPackage,
   listAISnapshots,
   openAISnapshotFolder,
   scanWorkspace,
@@ -20,7 +19,6 @@ import {
   type AIPackageSafetyState,
   type AISnapshotRecord,
   type GitStatus,
-  type ImportedPackageResult,
   type WorkspaceAnalysis,
 } from "./AIDevelopmentService";
 
@@ -59,7 +57,6 @@ function packageStateLabel(state: AIPackageSafetyState) {
 function commandBlock(label: string, value: string | undefined, onCopy: (value: string, label: string) => void) {
   if (!value) return null;
 
-
   return (
     <div className="ai-package-command">
       <div>
@@ -84,8 +81,6 @@ export function AIWorkspacePage({ activePage, activeWorkspace }: AIDevelopmentPa
   const [developerRequest, setDeveloperRequest] = useState("");
   const [packageId, setPackageId] = useState("");
   const [packageResult, setPackageResult] = useState<AIPackageBuilderResult | null>(null);
-  const [importedPackage, setImportedPackage] = useState<ImportedPackageResult | null>(null);
-  const [isDraggingPackage, setIsDraggingPackage] = useState(false);
   const [packageEligibility, setPackageEligibility] = useState<AIPackageReadiness | null>(null);
   const [activeTab, setActiveTab] = useState<AIDevelopmentTab>(getInitialTab);
   const [copiedAction, setCopiedAction] = useState<"continuation" | "combined" | "package" | null>(null);
@@ -352,41 +347,6 @@ export function AIWorkspacePage({ activePage, activeWorkspace }: AIDevelopmentPa
     }
   }
 
-  async function handleImportGeneratedPackage(sourcePath?: string) {
-    if (!rootPath) {
-      showStatus("Open a workspace before importing a generated package.");
-      return;
-    }
-
-    setIsWorking(true);
-    showStatus("Importing and validating generated package...");
-    try {
-      const result = await importGeneratedPackage(rootPath, sourcePath);
-      if (result.canceled) {
-        showStatus(result.message);
-        return;
-      }
-      setImportedPackage(result);
-      showStatus(result.message);
-    } catch (error) {
-      console.error(error);
-      showStatus("Generated package import failed.");
-    } finally {
-      setIsWorking(false);
-    }
-  }
-
-  async function handlePackageDrop(event: DragEvent<HTMLDivElement>) {
-    event.preventDefault();
-    setIsDraggingPackage(false);
-    const file = event.dataTransfer.files[0] as File & { path?: string };
-    if (!file?.path) {
-      showStatus("Unable to read the dropped package path. Use Browse for Package instead.");
-      return;
-    }
-    await handleImportGeneratedPackage(file.path);
-  }
-
   return (
     <>
       <section className="hero-panel ai-development-hero">
@@ -505,25 +465,7 @@ export function AIWorkspacePage({ activePage, activeWorkspace }: AIDevelopmentPa
 
       {activeTab === "package" && (
         <section className="module-panel ai-package-builder-panel ai-tab-panel">
-          <div className="ai-package-builder-header"><div><p className="eyebrow">Installable Milestones</p><h3>AI Package Builder</h3><p>Import generated packages for validation, or build a package from safe workspace changes.</p></div><div className="ai-package-header-actions"><button type="button" className="secondary-button" onClick={() => handleImportGeneratedPackage()} disabled={!rootPath || isWorking}>Browse for Package</button><button type="button" onClick={handleCreatePackage} disabled={!rootPath || isWorking || packageReadiness.state === "blocked"}>{packageButtonLabel}</button></div></div>
-          <div
-            className={`ai-package-drop-zone ${isDraggingPackage ? "dragging" : ""}`}
-            onDragEnter={(event) => { event.preventDefault(); setIsDraggingPackage(true); }}
-            onDragOver={(event) => event.preventDefault()}
-            onDragLeave={() => setIsDraggingPackage(false)}
-            onDrop={handlePackageDrop}
-          >
-            <strong>Import generated package</strong>
-            <span>Drop a Workflow Studio ZIP or extracted package folder here, or use Browse for Package.</span>
-          </div>
-          {importedPackage && <div className={`ai-imported-package ${importedPackage.safetyState}`}>
-            <div className="ai-imported-package-heading"><div><span>{packageStateLabel(importedPackage.safetyState)}</span><strong>{importedPackage.packageId ?? "Imported package"}</strong><p>{importedPackage.message}</p></div><code>{importedPackage.packagePath ?? importedPackage.sourcePath}</code></div>
-            <div className="ai-imported-package-summary"><div><span>Target</span><strong>{importedPackage.targetProject ?? "Not specified"}</strong></div><div><span>Files</span><strong>{importedPackage.files.length}</strong></div><div><span>Generated</span><strong>{importedPackage.generatedAt ? new Date(importedPackage.generatedAt).toLocaleString() : "Not recorded"}</strong></div><div><span>Status</span><strong>{packageStateLabel(importedPackage.safetyState)}</strong></div></div>
-            {importedPackage.description && <p>{importedPackage.description}</p>}
-            <div className="ai-package-command-list">{commandBlock("Install command", importedPackage.suggestedInstallCommand, handleCopyPackageText)}{commandBlock("Build command", importedPackage.suggestedBuildCommand, handleCopyPackageText)}{commandBlock("Git commit message", importedPackage.suggestedCommitMessage, handleCopyPackageText)}</div>
-            <div className="ai-package-file-list"><strong>Replacement files ({importedPackage.files.length})</strong>{importedPackage.files.length ? <ul>{importedPackage.files.map((file) => <li key={`${file.source}:${file.target}`} className={file.exists ? "" : "missing"}><span>{file.exists ? "✓" : "!"}</span><code>{file.target}</code></li>)}</ul> : <p>No replacement files were found.</p>}</div>
-            {importedPackage.warnings.length ? <div className="ai-package-warning-list"><strong>Validation notes</strong><ul>{importedPackage.warnings.map((warning) => <li key={warning}>{warning}</li>)}</ul></div> : null}
-          </div>}
+          <div className="ai-package-builder-header"><div><p className="eyebrow">Installable Milestones</p><h3>AI Package Builder</h3><p>Review readiness, replacement files, and install commands before exporting a standard package.</p></div><button type="button" onClick={handleCreatePackage} disabled={!rootPath || isWorking || packageReadiness.state === "blocked"}>{packageButtonLabel}</button></div>
           <div className={`ai-package-readiness ${packageReadiness.state}`}><div><span>{packageReadiness.label}</span><strong>{packageReadiness.summary}</strong></div><ul>{packageReadiness.reasons.map((reason) => <li key={reason}>{reason}</li>)}</ul></div>
           <div className="ai-package-form-grid">
             <label className="ai-package-field"><span>Package ID</span><input value={packageId} onChange={(event) => setPackageId(event.target.value)} placeholder="workflowstudio-v1.4.0-daily-driver-polish" /></label>

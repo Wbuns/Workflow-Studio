@@ -1326,6 +1326,129 @@ function createAIPackage(input) {
             : "Package structure validated and ready to install.",
     };
 }
+function resolveImportedPackageRoot(candidatePath) {
+    if (fs.existsSync(path.join(candidatePath, "manifest.json")))
+        return candidatePath;
+    if (!fs.existsSync(candidatePath) || !fs.statSync(candidatePath).isDirectory())
+        return null;
+    const children = fs.readdirSync(candidatePath, { withFileTypes: true }).filter((entry) => entry.isDirectory());
+    if (children.length === 1) {
+        const nested = path.join(candidatePath, children[0].name);
+        if (fs.existsSync(path.join(nested, "manifest.json")))
+            return nested;
+    }
+    return null;
+}
+function extractPackageZip(rootPath, zipPath) {
+    const intakeRoot = path.join(rootPath, ".workflowstudio", "temp", "package-intake");
+    const destination = path.join(intakeRoot, `${safeTimestamp()}-${path.basename(zipPath, path.extname(zipPath))}`);
+    fs.mkdirSync(destination, { recursive: true });
+    if (process.platform !== "win32") {
+        throw new Error("ZIP intake currently requires Windows. Import an extracted package folder instead.");
+    }
+    const escapedZip = zipPath.replace(/'/g, "''");
+    const escapedDestination = destination.replace(/'/g, "''");
+    execSync(`powershell -NoProfile -Command "Expand-Archive -LiteralPath '${escapedZip}' -DestinationPath '${escapedDestination}' -Force"`, {
+        windowsHide: true,
+        stdio: "pipe",
+    });
+    return destination;
+}
+function inspectImportedPackage(rootPath, sourcePath) {
+    const warnings = [];
+    let candidatePath = sourcePath;
+    try {
+        if (path.extname(sourcePath).toLowerCase() === ".zip") {
+            candidatePath = extractPackageZip(rootPath, sourcePath);
+        }
+    }
+    catch (error) {
+        return {
+            ok: false,
+            message: error instanceof Error ? error.message : "Unable to extract the selected package ZIP.",
+            sourcePath,
+            files: [],
+            warnings: ["The selected ZIP could not be extracted safely."],
+            safetyState: "blocked",
+        };
+    }
+    const packagePath = resolveImportedPackageRoot(candidatePath);
+    if (!packagePath) {
+        return {
+            ok: false,
+            message: "The selected item is not a valid Workflow Studio package.",
+            sourcePath,
+            files: [],
+            warnings: ["manifest.json was not found at the package root."],
+            safetyState: "blocked",
+        };
+    }
+    try {
+        const manifest = JSON.parse(fs.readFileSync(path.join(packagePath, "manifest.json"), "utf8"));
+        const files = (manifest.files ?? []).map((file) => {
+            const source = file.source ?? "";
+            const target = file.target ?? "";
+            const normalizedSource = source.replace(/\\/g, "/");
+            const exists = Boolean(source && fs.existsSync(path.join(packagePath, source)));
+            if (!source || !target)
+                warnings.push("A manifest file entry is missing source or target.");
+            else if (!exists)
+                warnings.push(`Replacement file is missing: ${normalizedSource}.`);
+            if (target.startsWith("/") || target.includes(".."))
+                warnings.push(`Unsafe target path was blocked: ${target}.`);
+            return { source: normalizedSource, target: target.replace(/\\/g, "/"), exists };
+        });
+        if (!files.length)
+            warnings.push("The manifest does not contain replacement files.");
+        if (!fs.existsSync(path.join(packagePath, "README.md")))
+            warnings.push("README.md is missing.");
+        const blocked = warnings.some((warning) => /missing source or target|Replacement file is missing|Unsafe target path|does not contain replacement/.test(warning));
+        const installCommand = `.\\tools\\package\\install-package.ps1 "${packagePath}"`;
+        return {
+            ok: !blocked,
+            message: blocked ? "Package validation found blocking problems." : warnings.length ? "Package imported with warnings." : "Package imported and validated successfully.",
+            sourcePath,
+            packagePath,
+            packageId: manifest.packageId ?? manifest.name ?? path.basename(packagePath),
+            targetProject: manifest.targetProject,
+            description: manifest.description,
+            generatedAt: manifest.generatedAt,
+            suggestedInstallCommand: manifest.suggestedInstallCommand ?? installCommand,
+            suggestedBuildCommand: manifest.suggestedBuildCommand,
+            suggestedCommitMessage: manifest.suggestedCommitMessage,
+            files,
+            warnings,
+            safetyState: blocked ? "blocked" : warnings.length ? "warning" : "safe",
+        };
+    }
+    catch (error) {
+        return {
+            ok: false,
+            message: "manifest.json could not be read.",
+            sourcePath,
+            packagePath,
+            files: [],
+            warnings: [error instanceof Error ? error.message : "Manifest parsing failed."],
+            safetyState: "blocked",
+        };
+    }
+}
+async function importGeneratedPackage(rootPathInput, sourcePathInput) {
+    const rootPath = normalizeRoot(rootPathInput);
+    let sourcePath = sourcePathInput;
+    if (!sourcePath) {
+        const selected = await dialog.showOpenDialog({
+            title: "Import Generated Package",
+            properties: ["openFile", "openDirectory"],
+            filters: [{ name: "Workflow Studio Packages", extensions: ["zip"] }],
+        });
+        if (selected.canceled || selected.filePaths.length === 0) {
+            return { ok: false, canceled: true, message: "Package import canceled.", files: [], warnings: [], safetyState: "blocked" };
+        }
+        sourcePath = selected.filePaths[0];
+    }
+    return inspectImportedPackage(rootPath, sourcePath);
+}
 async function openAISnapshotFolder(rootPathInput) {
     const rootPath = normalizeRoot(rootPathInput);
     const folder = snapshotRoot(rootPath);
@@ -1350,6 +1473,7 @@ ipcMain.handle("workspace:listAISnapshots", (_event, rootPath) => listAISnapshot
 ipcMain.handle("workspace:openAISnapshotFolder", (_event, rootPath) => openAISnapshotFolder(rootPath));
 ipcMain.handle("workspace:getAIPackageReadiness", (_event, rootPath) => getAIPackageReadiness(rootPath));
 ipcMain.handle("workspace:createAIPackage", (_event, input) => createAIPackage(input));
+ipcMain.handle("workspace:importGeneratedPackage", (_event, rootPath, sourcePath) => importGeneratedPackage(rootPath, sourcePath));
 ipcMain.handle("workspace:openPath", (_event, rootPath, relativePath) => openWorkspacePath(rootPath, relativePath));
 ipcMain.handle("workspace:openFolder", async () => {
     const result = await dialog.showOpenDialog({

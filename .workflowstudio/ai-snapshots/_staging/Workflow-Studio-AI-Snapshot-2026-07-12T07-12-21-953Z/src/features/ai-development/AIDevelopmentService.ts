@@ -71,31 +71,6 @@ export type AIPackageReadiness = {
   message: string;
 };
 
-
-export type ImportedPackageFile = {
-  source: string;
-  target: string;
-  exists: boolean;
-};
-
-export type ImportedPackageResult = {
-  ok: boolean;
-  canceled?: boolean;
-  message: string;
-  sourcePath?: string;
-  packagePath?: string;
-  packageId?: string;
-  targetProject?: string;
-  description?: string;
-  generatedAt?: string;
-  suggestedInstallCommand?: string;
-  suggestedBuildCommand?: string;
-  suggestedCommitMessage?: string;
-  files: ImportedPackageFile[];
-  warnings: string[];
-  safetyState: AIPackageSafetyState;
-};
-
 export type AIReadinessItem = {
   label: string;
   status: "Ready" | "In Progress" | "Not Started" | "Needs Attention";
@@ -117,7 +92,6 @@ type WorkflowStudioBridge = {
     openAISnapshotFolder?: (rootPath?: string) => Promise<{ ok: boolean; message: string }>;
     getAIPackageReadiness?: (rootPath?: string) => Promise<AIPackageReadiness>;
     createAIPackage?: (input: { rootPath?: string; developerRequest: string; packageId?: string }) => Promise<AIPackageBuilderResult>;
-    importGeneratedPackage?: (rootPath?: string, sourcePath?: string) => Promise<ImportedPackageResult>;
   };
 };
 
@@ -179,20 +153,6 @@ export async function createAIPackage(input: {
     };
   }
   return createPackage(input);
-}
-
-export async function importGeneratedPackage(rootPath?: string, sourcePath?: string): Promise<ImportedPackageResult> {
-  const importPackage = bridge()?.workspace?.importGeneratedPackage;
-  if (!importPackage) {
-    return {
-      ok: false,
-      message: "Package intake backend is not available. Restart Workflow Studio after installing the package.",
-      files: [],
-      warnings: ["Electron bridge method workspace.importGeneratedPackage was not found."],
-      safetyState: "blocked",
-    };
-  }
-  return importPackage(rootPath, sourcePath);
 }
 
 function inferLifecycle(analysis: WorkspaceAnalysis): AIWorkspaceContext["lifecycle"] {

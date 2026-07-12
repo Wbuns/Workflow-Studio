@@ -1,6 +1,16 @@
 {
   "snapshots": [
     {
+      "id": "Workflow-Studio-AI-Snapshot-2026-07-12T07-12-21-953Z",
+      "name": "Workflow-Studio-AI-Snapshot-2026-07-12T07-12-21-953Z.zip",
+      "filePath": "C:\\Users\\mitch\\Desktop\\GPT Workflow Studio\\.workflowstudio\\ai-snapshots\\Workflow-Studio-AI-Snapshot-2026-07-12T07-12-21-953Z.zip",
+      "createdAt": "2026-07-12T07:12:22.462Z",
+      "rootPath": "C:\\Users\\mitch\\Desktop\\GPT Workflow Studio",
+      "includedRoots": [],
+      "excludedPatterns": [],
+      "sizeBytes": 195101
+    },
+    {
       "id": "Workflow-Studio-AI-Snapshot-2026-07-12T07-07-53-909Z",
       "name": "Workflow-Studio-AI-Snapshot-2026-07-12T07-07-53-909Z.zip",
       "filePath": "C:\\Users\\mitch\\Desktop\\GPT Workflow Studio\\.workflowstudio\\ai-snapshots\\Workflow-Studio-AI-Snapshot-2026-07-12T07-07-53-909Z.zip",
