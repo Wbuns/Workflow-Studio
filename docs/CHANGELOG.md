@@ -267,3 +267,4 @@ Completed
 - Snapshot-only and generated-file changes no longer enable package creation.
 - Disabled package actions now report `No Packageable Changes Detected`.
 - Removed the duplicate Open Snapshot Folder action from the Snapshots tab.
+\n\n# v2.0.3 — Global Workspace Search\n\n## Added\n\n- Ctrl+K project-wide search overlay.\n- Unified search results for documentation, packages, snapshots, timeline activity, templates, metadata, and navigation.\n- Keyboard navigation and secure active-workspace opening.\n

@@ -4,6 +4,7 @@ import { Header } from "../components/Header/Header";
 import { Sidebar } from "../components/Sidebar/Sidebar";
 import { StatusBar } from "../components/StatusBar/StatusBar";
 import { Workspace } from "../components/Workspace/Workspace";
+import { WorkspaceSearch } from "../components/WorkspaceSearch/WorkspaceSearch";
 import { navigationItems } from "../data/navigation";
 import {
   loadWorkspaceRegistry,
@@ -87,6 +88,7 @@ function App() {
       <Workspace activePage={activePage} activeWorkspace={activeWorkspace} onNavigate={handleNavigate} />
       <StatusBar activePage={activePage} activeWorkspace={activeWorkspace} />
       <CommandPalette navigationItems={navigationItems} onNavigate={handleNavigate} />
+      <WorkspaceSearch rootPath={activeWorkspace?.rootPath} navigationItems={navigationItems} onNavigate={handleNavigate} />
     </div>
   );
 }
