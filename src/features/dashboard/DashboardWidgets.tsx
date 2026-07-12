@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { WorkspaceCommand, WorkspaceCommandExecution, WorkspaceCommandOutput } from "../../types/workspaceAnalysis";
 import type { DashboardSummary } from "./DashboardTypes";
+import { buildProjectInsights } from "../../services/ProjectIntelligenceService";
 
 type DashboardWidgetsProps = { summary: DashboardSummary; onNavigate: (pageId: string) => void };
 
@@ -14,6 +15,7 @@ export function DashboardWidgets({ summary, onNavigate }: DashboardWidgetsProps)
   const [output, setOutput] = useState<WorkspaceCommandOutput[]>([]);
   const [executionError, setExecutionError] = useState<string>();
   const commands = summary.workspaceAnalysis.workspaceCommands;
+  const insights = useMemo(() => buildProjectInsights(summary), [summary]);
 
   useEffect(() => {
     const unsubscribe = window.workflowStudio?.workspace?.onCommandOutput?.((entry) => {
@@ -57,6 +59,23 @@ export function DashboardWidgets({ summary, onNavigate }: DashboardWidgetsProps)
         <Stat label="Milestone" value={summary.currentMilestone} detail={summary.lifecyclePhase} />
         <Stat label="Readiness" value={summary.readinessStatus} detail="Milestone readiness overview" />
         <Stat label="Git" value={summary.gitEnabled ? "Connected" : "Not detected"} detail={summary.healthWarnings.length ? `${summary.healthWarnings.length} notices` : "Workspace clean"} />
+      </section>
+
+      <section className="workspace-card project-intelligence-card">
+        <div className="workspace-card-heading">
+          <div><p className="eyebrow">Project Intelligence</p><h3>What Workflow Studio Notices</h3></div>
+          <span className="workspace-phase-badge">{insights.length} insights</span>
+        </div>
+        <div className="project-insight-grid">
+          {insights.map((insight) => (
+            <article className={`project-insight insight-${insight.tone}`} key={insight.id}>
+              <div><span>{insight.tone}</span><h4>{insight.title}</h4><p>{insight.detail}</p></div>
+              {insight.targetPageId && insight.targetPageId !== "dashboard" && (
+                <button className="secondary-button" type="button" onClick={() => onNavigate(insight.targetPageId!)}>{insight.actionLabel ?? "Open"}</button>
+              )}
+            </article>
+          ))}
+        </div>
       </section>
 
       <section className="project-workspace-main">
