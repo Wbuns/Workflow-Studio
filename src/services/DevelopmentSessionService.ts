@@ -99,6 +99,32 @@ export function buildDevelopmentCombinedPrompt(
   return `${continuationPrompt}\n\n--- Developer Request ---\n\n${request}`;
 }
 
+
+export function buildPackageGenerationPrompt(
+  combinedPrompt: string,
+  projectName: string,
+  currentMilestone?: string,
+): string {
+  return `${combinedPrompt}
+
+--- Package Generation Requirements ---
+
+Create a complete, installable Workflow Studio milestone package for ${projectName}.
+
+Package requirements:
+- Use the current milestone ${currentMilestone ?? "defined in the Developer Request"}.
+- Produce complete replacement files rather than partial patches when practical.
+- Include manifest.json with source and target mappings.
+- Include README.md with purpose, installation steps, validation checklist, and suggested commit message.
+- Include all changed implementation and documentation files under files/.
+- Preserve existing behavior unless the Developer Request explicitly changes it.
+- Do not weaken package validation, backups, build checks, or security boundaries.
+- The result must be delivered as a downloadable ZIP that can be extracted and installed with the existing Workflow Studio package installer.
+- Build must pass after installation.
+
+Return the completed package, not only an implementation plan.`;
+}
+
 export function createDevelopmentSession(input: CreateDevelopmentSessionInput): DevelopmentSession {
   const generatedAt = input.generatedAt ?? new Date();
   const continuationPrompt = buildDevelopmentContinuationPrompt({
@@ -111,6 +137,7 @@ export function createDevelopmentSession(input: CreateDevelopmentSessionInput): 
   const analysis = input.analysis;
   const embedded = analysis?.embedded;
   const projectName = analysis?.projectName ?? "Selected workspace";
+  const combinedPrompt = buildDevelopmentCombinedPrompt(continuationPrompt, developerRequest);
 
   return {
     id: createSessionId(projectName, generatedAt),
@@ -139,7 +166,12 @@ export function createDevelopmentSession(input: CreateDevelopmentSessionInput): 
     gitStatus: input.gitStatus,
     developerRequest,
     continuationPrompt,
-    combinedPrompt: buildDevelopmentCombinedPrompt(continuationPrompt, developerRequest),
+    combinedPrompt,
+    packageGenerationPrompt: buildPackageGenerationPrompt(
+      combinedPrompt,
+      projectName,
+      analysis?.currentMilestone,
+    ),
     warnings: analysis?.health.warnings ?? [],
     recommendations: input.workspaceContext.nextActions,
   };

@@ -28,6 +28,7 @@ type AIDevelopmentPageProps = {
 };
 
 type AIDevelopmentTab = "context" | "package" | "snapshots";
+type AIPipelineStage = "analyzed" | "session-ready" | "prompt-copied" | "chatgpt-opened";
 
 const AI_TAB_KEY = "workflowstudio.aiWorkspace.activeTab";
 
@@ -82,7 +83,8 @@ export function AIWorkspacePage({ activePage, activeWorkspace }: AIDevelopmentPa
   const [packageResult, setPackageResult] = useState<AIPackageBuilderResult | null>(null);
   const [packageEligibility, setPackageEligibility] = useState<AIPackageReadiness | null>(null);
   const [activeTab, setActiveTab] = useState<AIDevelopmentTab>(getInitialTab);
-  const [copiedAction, setCopiedAction] = useState<"continuation" | "combined" | null>(null);
+  const [copiedAction, setCopiedAction] = useState<"continuation" | "combined" | "package" | null>(null);
+  const [pipelineStage, setPipelineStage] = useState<AIPipelineStage>("analyzed");
 
   function showStatus(message: string) {
     setStatusMessage(message);
@@ -110,6 +112,24 @@ export function AIWorkspacePage({ activePage, activeWorkspace }: AIDevelopmentPa
 
   const prompt = developmentSession.continuationPrompt;
   const combinedPrompt = developmentSession.combinedPrompt;
+  const packageGenerationPrompt = developmentSession.packageGenerationPrompt;
+  const sessionReadiness = useMemo(() => {
+    const checks = [
+      { label: "Workspace analyzed", ready: Boolean(analysis) },
+      { label: "Project metadata loaded", ready: Boolean(analysis?.projectName && rootPath) },
+      { label: "Documentation discovered", ready: developmentSession.documentation.paths.length > 0 },
+      { label: "Git status checked", ready: Boolean(gitStatus) },
+      { label: "Developer Request included", ready: Boolean(developerRequest.trim()) },
+      { label: "Development session built", ready: Boolean(analysis && developmentSession.id) },
+    ];
+    const readyCount = checks.filter((item) => item.ready).length;
+    return {
+      checks,
+      readyCount,
+      percent: Math.round((readyCount / checks.length) * 100),
+      readyForPackage: Boolean(analysis && rootPath && developerRequest.trim()),
+    };
+  }, [analysis, developerRequest, developmentSession, gitStatus, rootPath]);
 
   const packageReadiness = useMemo<PackageReadiness>(() => {
     const reasons: string[] = [];
@@ -200,6 +220,10 @@ export function AIWorkspacePage({ activePage, activeWorkspace }: AIDevelopmentPa
     window.sessionStorage.setItem(workspaceDraftKey(rootPath), JSON.stringify({ developerRequest, packageId }));
   }, [developerRequest, packageId, rootPath]);
 
+  useEffect(() => {
+    setPipelineStage(analysis ? "session-ready" : "analyzed");
+  }, [analysis, developerRequest, rootPath]);
+
   async function handleCreateSnapshot() {
     if (!rootPath) {
       showStatus("Open a workspace before creating an AI snapshot.");
@@ -234,6 +258,42 @@ export function AIWorkspacePage({ activePage, activeWorkspace }: AIDevelopmentPa
     showStatus(developerRequest.trim()
       ? "Combined prompt copied to clipboard."
       : "Continuation prompt copied. Add a Developer Request to include milestone instructions.");
+    window.setTimeout(() => setCopiedAction(null), 2400);
+  }
+
+  function handleGenerateDevelopmentSession() {
+    if (!rootPath || !analysis) {
+      showStatus("Open and analyze a workspace before generating a development session.");
+      return;
+    }
+    setPipelineStage("session-ready");
+    showStatus("Development session generated and ready for review.");
+  }
+
+  async function handleCopyPackagePrompt() {
+    if (!developerRequest.trim()) {
+      showStatus("Add a Developer Request before copying the package-generation prompt.");
+      return;
+    }
+    await copyText(packageGenerationPrompt);
+    setCopiedAction("package");
+    setPipelineStage("prompt-copied");
+    showStatus("Package-generation prompt copied to clipboard.");
+    window.setTimeout(() => setCopiedAction(null), 2400);
+  }
+
+  async function handleOpenChatGPT() {
+    if (!sessionReadiness.readyForPackage) {
+      showStatus("Complete the workspace analysis and Developer Request before opening ChatGPT.");
+      return;
+    }
+    if (pipelineStage !== "prompt-copied" && copiedAction !== "package") {
+      await copyText(packageGenerationPrompt);
+      setCopiedAction("package");
+    }
+    window.open("https://chatgpt.com/", "_blank", "noopener,noreferrer");
+    setPipelineStage("chatgpt-opened");
+    showStatus("ChatGPT opened. Paste the copied package-generation prompt to create the ZIP.");
     window.setTimeout(() => setCopiedAction(null), 2400);
   }
 
@@ -326,6 +386,50 @@ export function AIWorkspacePage({ activePage, activeWorkspace }: AIDevelopmentPa
 
       {activeTab === "context" && (
         <>
+          <section className="module-panel ai-development-pipeline">
+            <div className="ai-section-heading">
+              <div>
+                <p className="eyebrow">AI Development Orchestrator</p>
+                <h3>Development Pipeline</h3>
+                <p>Workspace analysis runs automatically. Review readiness, generate the session, and hand the package request to ChatGPT.</p>
+              </div>
+              <div className={`ai-readiness-score ${sessionReadiness.readyForPackage ? "ready" : "attention"}`}>
+                <strong>{sessionReadiness.percent}%</strong>
+                <span>Session readiness</span>
+              </div>
+            </div>
+            <div className="ai-pipeline-layout">
+              <div className="ai-pipeline-steps">
+                {sessionReadiness.checks.map((check) => (
+                  <div className={check.ready ? "complete" : "pending"} key={check.label}>
+                    <span>{check.ready ? "✓" : "○"}</span>
+                    <strong>{check.label}</strong>
+                  </div>
+                ))}
+              </div>
+              <div className="ai-session-summary">
+                <dl>
+                  <div><dt>Project</dt><dd>{developmentSession.project.name}</dd></div>
+                  <div><dt>Milestone</dt><dd>{developmentSession.project.currentMilestone ?? "Not specified"}</dd></div>
+                  <div><dt>Git</dt><dd>{developmentSession.gitStatus?.summary ?? "Not checked"}</dd></div>
+                  <div><dt>Documentation</dt><dd>{developmentSession.documentation.paths.length} paths</dd></div>
+                  <div><dt>Warnings</dt><dd>{developmentSession.warnings.length}</dd></div>
+                </dl>
+              </div>
+            </div>
+            <div className="ai-pipeline-actions">
+              <button type="button" onClick={handleGenerateDevelopmentSession} disabled={!rootPath || !analysis}>Generate Development Session</button>
+              <button type="button" onClick={handleCopyPackagePrompt} disabled={!sessionReadiness.readyForPackage} className={copiedAction === "package" ? "copied" : ""}>
+                {copiedAction === "package" ? "✓ Package Prompt Copied" : "Copy Package-Generation Prompt"}
+              </button>
+              <button type="button" onClick={handleOpenChatGPT} disabled={!sessionReadiness.readyForPackage}>Open ChatGPT</button>
+              <button type="button" onClick={() => setActiveTab("package")} disabled={pipelineStage !== "chatgpt-opened"}>Import Generated Package</button>
+            </div>
+            <div className={`ai-pipeline-current-step ${pipelineStage}`}>
+              <span>Current step</span>
+              <strong>{pipelineStage === "analyzed" ? "Review workspace readiness" : pipelineStage === "session-ready" ? "Copy the package-generation prompt" : pipelineStage === "prompt-copied" ? "Open ChatGPT and generate the ZIP" : "Download the ZIP, then open Package Builder to import or install it"}</strong>
+            </div>
+          </section>
           <section className="module-panel ai-developer-request-panel">
             <div className="ai-section-heading">
               <div>

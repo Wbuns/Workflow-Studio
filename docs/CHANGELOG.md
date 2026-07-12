@@ -279,3 +279,18 @@ Completed
 ## Changed
 
 - AI Workspace now consumes a typed development session while preserving its existing visual behavior and package safety workflow.
+
+
+# v2.0.5.2 — AI Package Workflow
+
+## Added
+
+- Guided AI Development Pipeline in the AI Workspace.
+- Development-session readiness checklist and summary.
+- Provider-independent package-generation prompt.
+- Copy Package-Generation Prompt and Open ChatGPT actions.
+- Clear handoff into the existing Package Builder.
+
+## Preserved
+
+- Existing workspace analysis, snapshots, continuation prompts, package validation, and package safety behavior.

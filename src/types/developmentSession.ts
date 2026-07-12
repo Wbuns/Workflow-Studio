@@ -56,6 +56,7 @@ export type DevelopmentSession = {
   developerRequest: string;
   continuationPrompt: string;
   combinedPrompt: string;
+  packageGenerationPrompt: string;
   warnings: string[];
   recommendations: string[];
 };
