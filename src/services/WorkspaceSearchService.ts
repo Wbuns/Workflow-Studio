@@ -105,23 +105,31 @@ export function filterWorkspaceSearchResults(
   query: string,
 ): WorkspaceSearchResult[] {
   const normalized = normalize(query);
-  if (!normalized) return results.slice(0, 18);
-
+  if (!normalized) {
+    return [...results].sort((left, right) => {
+      const leftDate = left.occurredAt ? Date.parse(left.occurredAt) : 0;
+      const rightDate = right.occurredAt ? Date.parse(right.occurredAt) : 0;
+      if (rightDate !== leftDate) return rightDate - leftDate;
+      if (left.kind === "navigation" && right.kind !== "navigation") return -1;
+      if (right.kind === "navigation" && left.kind !== "navigation") return 1;
+      return left.title.localeCompare(right.title);
+    }).slice(0, 24);
+  }
   const terms = normalized.split(/\s+/).filter(Boolean);
-  return results
-    .map((result) => {
-      const title = normalize(result.title);
-      const haystack = normalize(`${result.title} ${result.detail} ${result.location ?? ""} ${result.keywords}`);
-      const score = terms.reduce((total, term) => {
-        if (title === term) return total + 12;
-        if (title.startsWith(term)) return total + 8;
-        if (title.includes(term)) return total + 5;
-        return haystack.includes(term) ? total + 2 : -100;
-      }, 0);
-      return { result, score };
-    })
-    .filter((entry) => entry.score >= 0)
-    .sort((left, right) => right.score - left.score || left.result.title.localeCompare(right.result.title))
-    .slice(0, 30)
-    .map((entry) => entry.result);
+  return results.map((result) => {
+    const title = normalize(result.title), detail = normalize(result.detail), location = normalize(result.location ?? "");
+    const haystack = normalize(`${result.title} ${result.detail} ${result.location ?? ""} ${result.keywords}`);
+    const score = terms.reduce((total, term) => {
+      if (title === term) return total + 20;
+      if (title.startsWith(term)) return total + 14;
+      if (title.includes(term)) return total + 10;
+      if (detail.includes(term)) return total + 5;
+      if (location.includes(term)) return total + 4;
+      if (haystack.includes(term)) return total + 2;
+      let cursor = 0;
+      for (const character of term) { cursor = haystack.indexOf(character, cursor); if (cursor === -1) return -1000; cursor += 1; }
+      return total + 1;
+    }, result.kind === "navigation" ? 2 : 0);
+    return { result, score };
+  }).filter((entry) => entry.score >= 0).sort((left, right) => right.score - left.score || left.result.title.localeCompare(right.result.title)).slice(0, 40).map((entry) => entry.result);
 }

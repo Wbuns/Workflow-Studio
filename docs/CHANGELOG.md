@@ -314,3 +314,9 @@ Completed
 
 - Added persistent collapsed sidebar mode.
 - Refined Dashboard spacing and responsive card behavior.
+
+
+# v2.0.6.3 — Command Palette and Search Polish
+
+- Added command categories, recent commands, and fuzzy matching.
+- Added search filters, history, and improved ranking.

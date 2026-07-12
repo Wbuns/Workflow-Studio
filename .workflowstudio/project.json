@@ -1,8 +1,8 @@
 {
   "name": "Workflow Studio",
   "description": "A desktop tool for package-based AI-assisted software development.",
-  "version": "2.0.6.2",
-  "currentMilestone": "v2.0.6.2-dashboard-sidebar-polish",
+  "version": "2.0.6.3",
+  "currentMilestone": "v2.0.6.3-command-palette-search-polish",
   "projectType": "electron-react-typescript",
   "buildCommand": "npm run build",
   "testCommand": "",
@@ -11,5 +11,5 @@
   "documentationPaths": [
     "docs"
   ],
-  "status": "Dashboard and sidebar polish active"
+  "status": "Command palette and workspace search polish active"
 }
