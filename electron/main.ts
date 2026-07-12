@@ -2,7 +2,7 @@ import { app, BrowserWindow, Menu, ipcMain, dialog, shell } from "electron";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { execSync, spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
+import { execFileSync, execSync, spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -1909,6 +1909,56 @@ async function openAISnapshotFolder(rootPathInput?: string): Promise<OpenPathRes
 }
 
 
+
+
+type DevelopmentPipelineResult = {
+  ok: boolean;
+  message: string;
+  install: { status: "completed" | "failed" | "skipped"; output: string };
+  build: { status: "completed" | "failed" | "skipped"; command?: string; output: string };
+  suggestedCommitMessage?: string;
+  completedAt: string;
+};
+
+function runDevelopmentPipeline(rootPathInput: string | undefined, packagePathInput: string | undefined, suggestedCommitMessage?: string): DevelopmentPipelineResult {
+  const rootPath = normalizeRoot(rootPathInput);
+  const packagePath = packagePathInput ? path.resolve(packagePathInput) : "";
+  const completedAt = new Date().toISOString();
+  const failed = (message: string, installOutput = "", buildOutput = ""): DevelopmentPipelineResult => ({
+    ok: false, message, completedAt, suggestedCommitMessage,
+    install: { status: installOutput ? "failed" : "skipped", output: installOutput },
+    build: { status: buildOutput ? "failed" : "skipped", output: buildOutput },
+  });
+
+  if (!packagePath || !fs.existsSync(path.join(packagePath, "manifest.json"))) return failed("Select a validated package before running the pipeline.");
+  const installerPath = path.join(rootPath, "tools", "package", "install-package.ps1");
+  if (!fs.existsSync(installerPath)) return failed("The standard package installer was not found in this workspace.");
+
+  let installOutput = "";
+  try {
+    installOutput = execFileSync("powershell.exe", ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", installerPath, packagePath], { cwd: rootPath, encoding: "utf8", windowsHide: true, stdio: ["ignore", "pipe", "pipe"] });
+  } catch (error) {
+    const detail = error as { stdout?: string | Buffer; stderr?: string | Buffer; message?: string };
+    installOutput = `${detail.stdout ?? ""}${detail.stderr ?? ""}${detail.message ?? ""}`.trim();
+    return failed("Package installation failed. The build was not started.", installOutput);
+  }
+
+  const analysis = scanWorkspace(rootPath);
+  const buildCommand = analysis.workspaceCommands.find((command) => command.category === "build" && command.permission === "safe");
+  if (!buildCommand) return { ok: true, message: "Package installed. No safe build command was detected.", completedAt, suggestedCommitMessage, install: { status: "completed", output: installOutput }, build: { status: "skipped", output: "No safe build command detected." } };
+
+  const tokens = tokenizeCommand(buildCommand.command);
+  let buildOutput = "";
+  try {
+    buildOutput = execFileSync(executableForPlatform(tokens[0]), tokens.slice(1), { cwd: resolveCommandWorkingDirectory(rootPath, buildCommand), encoding: "utf8", windowsHide: true, stdio: ["ignore", "pipe", "pipe"], env: { ...process.env, FORCE_COLOR: "0", NO_COLOR: "1" } });
+  } catch (error) {
+    const detail = error as { stdout?: string | Buffer; stderr?: string | Buffer; message?: string };
+    buildOutput = `${detail.stdout ?? ""}${detail.stderr ?? ""}${detail.message ?? ""}`.trim();
+    return { ok: false, message: "Package installed, but the build failed.", completedAt, suggestedCommitMessage, install: { status: "completed", output: installOutput }, build: { status: "failed", command: buildCommand.command, output: buildOutput } };
+  }
+
+  return { ok: true, message: "Package installed and the build passed.", completedAt, suggestedCommitMessage, install: { status: "completed", output: installOutput }, build: { status: "completed", command: buildCommand.command, output: buildOutput } };
+}
 ipcMain.handle("workspace:runCommand", (event, rootPath: string | undefined, commandId: string, approvedPermission?: "interactive" | "device-changing") =>
   runWorkspaceCommand(event.sender, rootPath, commandId, approvedPermission),
 );
@@ -1926,6 +1976,7 @@ ipcMain.handle("workspace:openAISnapshotFolder", (_event, rootPath?: string) => 
 ipcMain.handle("workspace:getAIPackageReadiness", (_event, rootPath?: string) => getAIPackageReadiness(rootPath));
 ipcMain.handle("workspace:createAIPackage", (_event, input: AIPackageBuilderInput) => createAIPackage(input));
 ipcMain.handle("workspace:importGeneratedPackage", (_event, rootPath?: string, sourcePath?: string) => importGeneratedPackage(rootPath, sourcePath));
+ipcMain.handle("workspace:runDevelopmentPipeline", (_event, rootPath?: string, packagePath?: string, suggestedCommitMessage?: string) => runDevelopmentPipeline(rootPath, packagePath, suggestedCommitMessage));
 ipcMain.handle("workspace:openPath", (_event, rootPath: string | undefined, relativePath: string) =>
   openWorkspacePath(rootPath, relativePath),
 );

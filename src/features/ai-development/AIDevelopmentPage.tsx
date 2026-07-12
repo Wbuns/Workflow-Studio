@@ -12,6 +12,7 @@ import {
   getGitStatus,
   getAIPackageReadiness,
   importGeneratedPackage,
+  runDevelopmentPipeline,
   listAISnapshots,
   openAISnapshotFolder,
   scanWorkspace,
@@ -29,7 +30,8 @@ type AIDevelopmentPageProps = {
   activeWorkspace?: WorkspaceRecord;
 };
 
-type AIDevelopmentTab = "context" | "package" | "snapshots";
+type AIDevelopmentTab = "context" | "package" | "snapshots" | "history";
+type SessionHistoryRecord = { id: string; generatedAt: string; project: string; milestone: string; developerRequest: string; readiness: number; packageId?: string; pipelineStatus?: "success" | "failed"; };
 type AIPipelineStage = "analyzed" | "session-ready" | "prompt-copied" | "chatgpt-opened";
 
 const AI_TAB_KEY = "workflowstudio.aiWorkspace.activeTab";
@@ -40,7 +42,7 @@ function workspaceDraftKey(rootPath?: string) {
 
 function getInitialTab(): AIDevelopmentTab {
   const saved = window.sessionStorage.getItem(AI_TAB_KEY);
-  return saved === "package" || saved === "snapshots" ? saved : "context";
+  return saved === "package" || saved === "snapshots" || saved === "history" ? saved : "context";
 }
 
 type PackageReadiness = {
@@ -85,6 +87,8 @@ export function AIWorkspacePage({ activePage, activeWorkspace }: AIDevelopmentPa
   const [packageId, setPackageId] = useState("");
   const [packageResult, setPackageResult] = useState<AIPackageBuilderResult | null>(null);
   const [importedPackage, setImportedPackage] = useState<ImportedPackageResult | null>(null);
+  const [pipelineResult, setPipelineResult] = useState<Awaited<ReturnType<typeof runDevelopmentPipeline>> | null>(null);
+  const [sessionHistory, setSessionHistory] = useState<SessionHistoryRecord[]>([]);
   const [isDraggingPackage, setIsDraggingPackage] = useState(false);
   const [packageEligibility, setPackageEligibility] = useState<AIPackageReadiness | null>(null);
   const [activeTab, setActiveTab] = useState<AIDevelopmentTab>(getInitialTab);
@@ -210,6 +214,18 @@ export function AIWorkspacePage({ activePage, activeWorkspace }: AIDevelopmentPa
   }, [activeTab]);
 
   useEffect(() => {
+    try {
+      const saved = window.localStorage.getItem("workflowstudio.ai-session-history");
+      setSessionHistory(saved ? JSON.parse(saved) as SessionHistoryRecord[] : []);
+    } catch { setSessionHistory([]); }
+  }, []);
+
+  function saveSessionHistory(next: SessionHistoryRecord[]) {
+    setSessionHistory(next);
+    window.localStorage.setItem("workflowstudio.ai-session-history", JSON.stringify(next.slice(0, 50)));
+  }
+
+  useEffect(() => {
     const saved = window.sessionStorage.getItem(workspaceDraftKey(rootPath));
     if (!saved) return;
     try {
@@ -272,7 +288,9 @@ export function AIWorkspacePage({ activePage, activeWorkspace }: AIDevelopmentPa
       return;
     }
     setPipelineStage("session-ready");
-    showStatus("Development session generated and ready for review.");
+    const record: SessionHistoryRecord = { id: `${Date.now()}`, generatedAt: new Date().toISOString(), project: developmentSession.project.name, milestone: developmentSession.project.currentMilestone ?? "Not specified", developerRequest: developerRequest.trim(), readiness: sessionReadiness.percent };
+    saveSessionHistory([record, ...sessionHistory.filter((item) => item.developerRequest !== record.developerRequest || item.project !== record.project)]);
+    showStatus("Development session generated, saved to history, and ready for review.");
   }
 
   async function handleCopyPackagePrompt() {
@@ -376,6 +394,29 @@ export function AIWorkspacePage({ activePage, activeWorkspace }: AIDevelopmentPa
     }
   }
 
+
+  async function handleRunDevelopmentPipeline() {
+    if (!rootPath || !importedPackage?.packagePath || importedPackage.safetyState === "blocked") {
+      showStatus("Import and validate a safe package before running the development pipeline.");
+      return;
+    }
+    setIsWorking(true);
+    setPipelineResult(null);
+    showStatus("Installing package and running the detected build command...");
+    try {
+      const result = await runDevelopmentPipeline(rootPath, importedPackage.packagePath, importedPackage.suggestedCommitMessage);
+      setPipelineResult(result);
+      if (sessionHistory.length) saveSessionHistory(sessionHistory.map((item, index) => index === 0 ? { ...item, packageId: importedPackage.packageId, pipelineStatus: result.ok ? "success" : "failed" } : item));
+      showStatus(result.message);
+      if (result.ok) await refresh();
+    } catch (error) {
+      console.error(error);
+      showStatus("Development pipeline failed unexpectedly.");
+    } finally {
+      setIsWorking(false);
+    }
+  }
+
   async function handlePackageDrop(event: DragEvent<HTMLDivElement>) {
     event.preventDefault();
     setIsDraggingPackage(false);
@@ -422,6 +463,7 @@ export function AIWorkspacePage({ activePage, activeWorkspace }: AIDevelopmentPa
         <button type="button" className={activeTab === "context" ? "active" : ""} onClick={() => setActiveTab("context")}>Workspace</button>
         <button type="button" className={activeTab === "package" ? "active" : ""} onClick={() => setActiveTab("package")}>Package Builder</button>
         <button type="button" className={activeTab === "snapshots" ? "active" : ""} onClick={() => setActiveTab("snapshots")}>Snapshots <span>{snapshots.length}</span></button>
+        <button type="button" className={activeTab === "history" ? "active" : ""} onClick={() => setActiveTab("history")}>Session History <span>{sessionHistory.length}</span></button>
       </nav>
 
       {activeTab === "context" && (
@@ -523,6 +565,16 @@ export function AIWorkspacePage({ activePage, activeWorkspace }: AIDevelopmentPa
             <div className="ai-package-command-list">{commandBlock("Install command", importedPackage.suggestedInstallCommand, handleCopyPackageText)}{commandBlock("Build command", importedPackage.suggestedBuildCommand, handleCopyPackageText)}{commandBlock("Git commit message", importedPackage.suggestedCommitMessage, handleCopyPackageText)}</div>
             <div className="ai-package-file-list"><strong>Replacement files ({importedPackage.files.length})</strong>{importedPackage.files.length ? <ul>{importedPackage.files.map((file) => <li key={`${file.source}:${file.target}`} className={file.exists ? "" : "missing"}><span>{file.exists ? "✓" : "!"}</span><code>{file.target}</code></li>)}</ul> : <p>No replacement files were found.</p>}</div>
             {importedPackage.warnings.length ? <div className="ai-package-warning-list"><strong>Validation notes</strong><ul>{importedPackage.warnings.map((warning) => <li key={warning}>{warning}</li>)}</ul></div> : null}
+            <div className="ai-development-runner">
+              <div><span>Guided Development Pipeline</span><strong>Install → Build → Ready to Commit</strong><p>Uses the reviewed package, the standard backup installer, and the detected safe build command.</p></div>
+              <button type="button" onClick={handleRunDevelopmentPipeline} disabled={isWorking || !importedPackage.ok || importedPackage.safetyState === "blocked"}>{isWorking ? "Pipeline Running…" : "Install Package and Run Build"}</button>
+            </div>
+            {pipelineResult && <div className={`ai-development-result ${pipelineResult.ok ? "success" : "failed"}`}>
+              <div><span>{pipelineResult.ok ? "Pipeline complete" : "Pipeline stopped"}</span><strong>{pipelineResult.message}</strong><time>{new Date(pipelineResult.completedAt).toLocaleString()}</time></div>
+              <div className="ai-development-stage-grid"><div><span>Install</span><strong>{pipelineResult.install.status}</strong></div><div><span>Build</span><strong>{pipelineResult.build.status}</strong></div><div><span>Commit</span><strong>{pipelineResult.suggestedCommitMessage ?? "Review changes"}</strong></div></div>
+              <details><summary>Installation output</summary><pre>{pipelineResult.install.output || "No output."}</pre></details>
+              <details><summary>Build output</summary><pre>{pipelineResult.build.output || "No output."}</pre></details>
+            </div>}
           </div>}
           <div className={`ai-package-readiness ${packageReadiness.state}`}><div><span>{packageReadiness.label}</span><strong>{packageReadiness.summary}</strong></div><ul>{packageReadiness.reasons.map((reason) => <li key={reason}>{reason}</li>)}</ul></div>
           <div className="ai-package-form-grid">
@@ -548,6 +600,18 @@ export function AIWorkspacePage({ activePage, activeWorkspace }: AIDevelopmentPa
             {packageResult.skippedFiles?.length ? <details className="ai-skipped-files"><summary>Skipped during export ({packageResult.skippedFiles.length})</summary><div>{packageResult.skippedFiles.map((file) => <div className="ai-skipped-file" key={`${file.category}:${file.path}`}><code>{file.path}</code><span>{file.reason}</span></div>)}</div></details> : null}
             {packageResult.warnings?.length ? <div className="ai-package-warning-list"><strong>Warnings</strong><ul>{packageResult.warnings.map((warning) => <li key={warning}>{warning}</li>)}</ul></div> : null}
           </div>}
+        </section>
+      )}
+
+      {activeTab === "history" && (
+        <section className="module-panel ai-session-history">
+          <div className="ai-section-heading"><div><p className="eyebrow">Development Continuity</p><h3>Session History</h3><p>Resume recent package-generation requests and review how milestone work progressed.</p></div><button type="button" onClick={() => saveSessionHistory([])} disabled={!sessionHistory.length}>Clear History</button></div>
+          {sessionHistory.length ? <div className="ai-session-history-list">{sessionHistory.map((item) => <article key={item.id}>
+            <div><span>{new Date(item.generatedAt).toLocaleString()}</span><strong>{item.project}</strong><p>{item.milestone}</p></div>
+            <div className="ai-session-history-meta"><span>{item.readiness}% ready</span><span>{item.pipelineStatus ?? "session prepared"}</span>{item.packageId && <code>{item.packageId}</code>}</div>
+            <p>{item.developerRequest || "No Developer Request recorded."}</p>
+            <button type="button" onClick={() => { setDeveloperRequest(item.developerRequest); setActiveTab("context"); showStatus("Development Session restored from history."); }}>Resume Session</button>
+          </article>)}</div> : <div className="empty-state"><strong>No development sessions yet</strong><p>Generate a Development Session to begin building reusable history.</p></div>}
         </section>
       )}
 

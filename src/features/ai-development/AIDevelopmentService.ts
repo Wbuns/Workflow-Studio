@@ -96,6 +96,15 @@ export type ImportedPackageResult = {
   safetyState: AIPackageSafetyState;
 };
 
+export type DevelopmentPipelineResult = {
+  ok: boolean;
+  message: string;
+  install: { status: "completed" | "failed" | "skipped"; output: string };
+  build: { status: "completed" | "failed" | "skipped"; command?: string; output: string };
+  suggestedCommitMessage?: string;
+  completedAt: string;
+};
+
 export type AIReadinessItem = {
   label: string;
   status: "Ready" | "In Progress" | "Not Started" | "Needs Attention";
@@ -118,6 +127,7 @@ type WorkflowStudioBridge = {
     getAIPackageReadiness?: (rootPath?: string) => Promise<AIPackageReadiness>;
     createAIPackage?: (input: { rootPath?: string; developerRequest: string; packageId?: string }) => Promise<AIPackageBuilderResult>;
     importGeneratedPackage?: (rootPath?: string, sourcePath?: string) => Promise<ImportedPackageResult>;
+    runDevelopmentPipeline?: (rootPath?: string, packagePath?: string, suggestedCommitMessage?: string) => Promise<DevelopmentPipelineResult>;
   };
 };
 
@@ -360,4 +370,10 @@ export function formatBytes(sizeBytes?: number) {
   if (sizeBytes < 1024) return `${sizeBytes} B`;
   if (sizeBytes < 1024 * 1024) return `${(sizeBytes / 1024).toFixed(1)} KB`;
   return `${(sizeBytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+export async function runDevelopmentPipeline(rootPath?: string, packagePath?: string, suggestedCommitMessage?: string): Promise<DevelopmentPipelineResult> {
+  const runPipeline = bridge()?.workspace?.runDevelopmentPipeline;
+  if (!runPipeline) return { ok: false, message: "Development pipeline backend is not available. Restart Workflow Studio after installing the package.", completedAt: new Date().toISOString(), suggestedCommitMessage, install: { status: "skipped", output: "" }, build: { status: "skipped", output: "" } };
+  return runPipeline(rootPath, packagePath, suggestedCommitMessage);
 }

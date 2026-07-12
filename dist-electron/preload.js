@@ -18,6 +18,7 @@ contextBridge.exposeInMainWorld("workflowStudio", {
         getAIPackageReadiness: (rootPath) => ipcRenderer.invoke("workspace:getAIPackageReadiness", rootPath),
         createAIPackage: (input) => ipcRenderer.invoke("workspace:createAIPackage", input),
         importGeneratedPackage: (rootPath, sourcePath) => ipcRenderer.invoke("workspace:importGeneratedPackage", rootPath, sourcePath),
+        runDevelopmentPipeline: (rootPath, packagePath, suggestedCommitMessage) => ipcRenderer.invoke("workspace:runDevelopmentPipeline", rootPath, packagePath, suggestedCommitMessage),
         runCommand: (rootPath, commandId, approvedPermission) => ipcRenderer.invoke("workspace:runCommand", rootPath, commandId, approvedPermission),
         cancelCommand: (executionId) => ipcRenderer.invoke("workspace:cancelCommand", executionId),
         onCommandOutput: (listener) => {
