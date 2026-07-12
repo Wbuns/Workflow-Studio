@@ -1,3 +1,12 @@
+# v2.1.5.2 — Downloaded Package Automation
+
+## Added
+
+- Install Latest Downloaded Package action.
+- Native package picker.
+- Automatic temporary extraction and manifest validation.
+- Automatic backups before replacement files are installed.
+
 # v2.1.5.1 — Developer Tools Foundation
 
 ## Added

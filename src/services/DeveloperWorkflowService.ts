@@ -1,4 +1,5 @@
 import type {
+  DeveloperPackageInstallResult,
   DeveloperValidationReport,
   DeveloperWorkflowResult,
 } from "../types/developerWorkflow";
@@ -26,6 +27,14 @@ export const DeveloperWorkflowService = {
 
   cleanSnapshotStaging(): Promise<DeveloperWorkflowResult> {
     return requireDeveloperBridge().cleanSnapshotStaging();
+  },
+
+  installLatestPackage(rootPath?: string): Promise<DeveloperPackageInstallResult> {
+    return requireDeveloperBridge().installLatestPackage(rootPath);
+  },
+
+  installPackage(rootPath?: string): Promise<DeveloperPackageInstallResult> {
+    return requireDeveloperBridge().installPackage(rootPath);
   },
 
   validateWorkspace(rootPath?: string): Promise<DeveloperValidationReport> {

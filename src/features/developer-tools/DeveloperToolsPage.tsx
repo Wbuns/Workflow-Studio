@@ -49,9 +49,15 @@ export function DeveloperToolsPage({
 
       <section className="developer-tools-grid">
         <article className="detail-panel developer-tool-card">
-          <h3>Packages</h3>
-          <p>Open package locations while package automation is introduced in the next milestone.</p>
+          <h3>Package Automation</h3>
+          <p>Find, extract, validate, back up, and install downloaded Workflow Studio packages.</p>
           <div className="developer-tool-actions">
+            <button type="button" onClick={() => runAction("latest-package", () => DeveloperWorkflowService.installLatestPackage(rootPath))} disabled={!rootPath || Boolean(busyAction)}>
+              Install Latest Downloaded Package
+            </button>
+            <button type="button" onClick={() => runAction("package-picker", () => DeveloperWorkflowService.installPackage(rootPath))} disabled={!rootPath || Boolean(busyAction)}>
+              Install Package…
+            </button>
             <button type="button" onClick={() => runAction("downloads", () => DeveloperWorkflowService.openDownloads())} disabled={Boolean(busyAction)}>
               Open Downloads
             </button>

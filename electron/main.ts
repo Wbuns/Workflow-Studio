@@ -2004,6 +2004,80 @@ function runDevelopmentPipeline(rootPathInput: string | undefined, packagePathIn
   return { ok: true, message: "Package installed and the build passed.", completedAt, suggestedCommitMessage, install: { status: "completed", output: installOutput }, build: { status: "completed", command: buildCommand.command, output: buildOutput } };
 }
 
+
+type DeveloperPackageManifest = {
+  packageId?: string;
+  files?: Array<{ source?: string; target?: string }>;
+};
+
+function newestDownloadedWorkflowPackage(): string | undefined {
+  const downloads = app.getPath("downloads");
+  return fs.readdirSync(downloads)
+    .filter((name) => /^workflowstudio-.*\.zip$/i.test(name))
+    .map((name) => path.join(downloads, name))
+    .sort((left, right) => fs.statSync(right).mtimeMs - fs.statSync(left).mtimeMs)[0];
+}
+
+function extractPackageArchive(zipPath: string): string {
+  const extractionRoot = path.join(app.getPath("temp"), "workflow-studio-package-intake");
+  fs.mkdirSync(extractionRoot, { recursive: true });
+  const packageName = path.basename(zipPath, path.extname(zipPath));
+  const destination = path.join(extractionRoot, `${packageName}-${Date.now()}`);
+  fs.mkdirSync(destination, { recursive: true });
+
+  if (process.platform !== "win32") {
+    throw new Error("Downloaded ZIP extraction is currently available on Windows.");
+  }
+
+  execFileSync("powershell.exe", [
+    "-NoProfile",
+    "-ExecutionPolicy", "Bypass",
+    "-Command",
+    `Expand-Archive -LiteralPath '${zipPath.replace(/'/g, "''")}' -DestinationPath '${destination.replace(/'/g, "''")}' -Force`,
+  ], { windowsHide: true });
+
+  return destination;
+}
+
+function installDeveloperPackage(rootPathInput: string | undefined, zipPath: string) {
+  const rootPath = normalizeRoot(rootPathInput);
+  const extractedPath = extractPackageArchive(zipPath);
+  const manifestPath = path.join(extractedPath, "manifest.json");
+  if (!fs.existsSync(manifestPath)) throw new Error("Package manifest.json was not found.");
+
+  const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8")) as DeveloperPackageManifest;
+  if (!manifest.packageId || !manifest.files?.length) throw new Error("Package manifest is incomplete.");
+
+  const backupPath = path.join(rootPath, "_backup", manifest.packageId, new Date().toISOString().replace(/[:.]/g, "-"));
+  let filesInstalled = 0;
+
+  for (const file of manifest.files) {
+    if (!file.source || !file.target) throw new Error("Package file entry is missing source or target.");
+    const source = path.resolve(extractedPath, file.source);
+    const target = path.resolve(rootPath, file.target);
+    if (!source.startsWith(extractedPath) || !target.startsWith(rootPath)) throw new Error("Package contains an unsafe file path.");
+    if (!fs.existsSync(source)) throw new Error(`Package source is missing: ${file.source}`);
+
+    if (fs.existsSync(target)) {
+      const backupTarget = path.join(backupPath, file.target);
+      fs.mkdirSync(path.dirname(backupTarget), { recursive: true });
+      fs.copyFileSync(target, backupTarget);
+    }
+
+    fs.mkdirSync(path.dirname(target), { recursive: true });
+    fs.copyFileSync(source, target);
+    filesInstalled += 1;
+  }
+
+  return { ok: true, message: `Installed ${manifest.packageId}.`, packageId: manifest.packageId, packagePath: zipPath, backupPath, filesInstalled };
+}
+
+async function chooseAndInstallDeveloperPackage(rootPath?: string) {
+  const selection = await dialog.showOpenDialog({ title: "Install Workflow Studio Package", defaultPath: app.getPath("downloads"), properties: ["openFile"], filters: [{ name: "ZIP packages", extensions: ["zip"] }] });
+  if (selection.canceled || !selection.filePaths[0]) return { ok: false, message: "Package selection was cancelled." };
+  return installDeveloperPackage(rootPath, selection.filePaths[0]);
+}
+
 type DeveloperWorkflowResult = {
   ok: boolean;
   message: string;
@@ -2058,6 +2132,12 @@ function cleanDeveloperSnapshotStaging(): DeveloperWorkflowResult {
   }
 }
 
+ipcMain.handle("developer:installLatestPackage", (_event, rootPath?: string) => {
+  const packagePath = newestDownloadedWorkflowPackage();
+  if (!packagePath) return { ok: false, message: "No workflowstudio-*.zip package was found in Downloads." };
+  return installDeveloperPackage(rootPath, packagePath);
+});
+ipcMain.handle("developer:installPackage", (_event, rootPath?: string) => chooseAndInstallDeveloperPackage(rootPath));
 ipcMain.handle("developer:openDownloads", () => openDeveloperPath(app.getPath("downloads"), "Downloads"));
 ipcMain.handle("developer:openPackageFolder", (_event, rootPath?: string) => openDeveloperPath(path.join(normalizeRoot(rootPath), "_packages"), "package folder"));
 ipcMain.handle("developer:openBackupFolder", (_event, rootPath?: string) => openDeveloperPath(path.join(normalizeRoot(rootPath), "_backup"), "backup folder"));

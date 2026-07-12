@@ -32,6 +32,8 @@ contextBridge.exposeInMainWorld("workflowStudio", {
         openPackageFolder: (rootPath) => ipcRenderer.invoke("developer:openPackageFolder", rootPath),
         openBackupFolder: (rootPath) => ipcRenderer.invoke("developer:openBackupFolder", rootPath),
         cleanSnapshotStaging: () => ipcRenderer.invoke("developer:cleanSnapshotStaging"),
+        installLatestPackage: (rootPath) => ipcRenderer.invoke("developer:installLatestPackage", rootPath),
+        installPackage: (rootPath) => ipcRenderer.invoke("developer:installPackage", rootPath),
         validateWorkspace: (rootPath) => ipcRenderer.invoke("developer:validateWorkspace", rootPath),
     },
     scanWorkspace: (rootPath) => ipcRenderer.invoke("workspace:scan", rootPath),

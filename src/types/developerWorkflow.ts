@@ -20,3 +20,10 @@ export type DeveloperValidationReport = {
   checks: DeveloperValidationCheck[];
   generatedAt: string;
 };
+
+export type DeveloperPackageInstallResult = DeveloperWorkflowResult & {
+  packageId?: string;
+  packagePath?: string;
+  backupPath?: string;
+  filesInstalled?: number;
+};
