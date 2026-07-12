@@ -1,11 +1,10 @@
-# v2.1.2a — Active Project and Snapshot Reliability
+# v2.1.3 — Active Workspace Service
 
-## Fixed
+## Added
 
-- Restores the last active registered project after restarting Workflow Studio.
-- Refreshes the persisted active project without forcing Workflow Studio itself active.
-- Moves AI snapshot staging outside the workspace so Vite cannot watch or reload it.
-- Preserves existing snapshot ZIP destinations and history.
+- Shared ActiveWorkspaceService for resolving the registered active project.
+- Active-workspace fallback for AI context, Git, documentation, packages, templates, and timeline services.
+- Explicit root paths continue to override the active workspace.
 
 # v2.1.2 — Project Registration
 
