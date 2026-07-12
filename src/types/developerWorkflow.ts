@@ -27,3 +27,14 @@ export type DeveloperPackageInstallResult = DeveloperWorkflowResult & {
   backupPath?: string;
   filesInstalled?: number;
 };
+
+export type DeveloperBuildSession = {
+  executionId: string;
+  label: string;
+  command: string;
+  status: "running" | "completed" | "failed" | "cancelled";
+  startedAt: string;
+  finishedAt?: string;
+  exitCode?: number;
+  output: string[];
+};

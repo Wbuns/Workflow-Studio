@@ -4,7 +4,7 @@ import type {
   WorkspaceProjectMetadata,
 } from "./workspace";
 import type { DeveloperPackageInstallResult, DeveloperValidationReport, DeveloperWorkflowResult } from "./developerWorkflow";
-import type { WorkspaceCommandExecution, WorkspaceCommandOutput } from "./workspaceAnalysis";
+import type { WorkspaceAnalysis, WorkspaceCommandExecution, WorkspaceCommandOutput } from "./workspaceAnalysis";
 
 export type GitFileStatus = {
   path: string;
@@ -27,6 +27,7 @@ export type WorkflowStudioBridge = {
   version?: string;
   platform?: string;
   workspace?: {
+    scan?: (rootPath?: string) => Promise<WorkspaceAnalysis>;
     getActiveWorkspace: () => Promise<ActiveWorkspace>;
     getProjectMetadata: () => Promise<WorkspaceProjectMetadata>;
     generateContinuationPrompt: () => Promise<AiContinuationPrompt>;

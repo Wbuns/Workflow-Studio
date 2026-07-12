@@ -1,3 +1,12 @@
+# v2.1.5.3 — Build Automation Console
+
+## Added
+
+- Safe build-command detection through Workspace Intelligence.
+- Run Build action for the active project.
+- Live stdout and stderr console.
+- Clearable in-app build output.
+
 # v2.1.5.2 — Downloaded Package Automation
 
 ## Added
