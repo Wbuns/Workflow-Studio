@@ -58,15 +58,6 @@ function packageStateLabel(state: AIPackageSafetyState) {
   return "Blocked";
 }
 
-
-function packageFileKind(target: string) {
-  const lower = target.toLowerCase();
-  if (lower.endsWith(".md")) return "documentation";
-  if (lower.endsWith(".css")) return "style";
-  if (lower.endsWith(".json") || lower.endsWith(".yml") || lower.endsWith(".yaml")) return "metadata";
-  return "source";
-}
-
 function commandBlock(label: string, value: string | undefined, onCopy: (value: string, label: string) => void) {
   if (!value) return null;
 
@@ -574,7 +565,7 @@ export function AIWorkspacePage({ activePage, activeWorkspace }: AIDevelopmentPa
             <div className="ai-imported-package-summary"><div><span>Target</span><strong>{importedPackage.targetProject ?? "Not specified"}</strong></div><div><span>Files</span><strong>{importedPackage.files.length}</strong></div><div><span>Generated</span><strong>{importedPackage.generatedAt ? new Date(importedPackage.generatedAt).toLocaleString() : "Not recorded"}</strong></div><div><span>Status</span><strong>{packageStateLabel(importedPackage.safetyState)}</strong></div></div>
             {importedPackage.description && <p>{importedPackage.description}</p>}
             <details className="ai-package-advanced"><summary>Advanced commands and package metadata</summary><div className="ai-package-command-list">{commandBlock("Install command", importedPackage.suggestedInstallCommand, handleCopyPackageText)}{commandBlock("Build command", importedPackage.suggestedBuildCommand, handleCopyPackageText)}{commandBlock("Git commit message", importedPackage.suggestedCommitMessage, handleCopyPackageText)}</div></details>
-            <div className="ai-package-file-list"><strong>Replacement files ({importedPackage.files.length})</strong>{importedPackage.files.length ? <ul>{importedPackage.files.map((file) => <li key={`${file.source}:${file.target}`} className={file.exists ? "" : "missing"} data-file-kind={packageFileKind(file.target)}><span>{file.exists ? "✓" : "!"}</span><code>{file.target}</code></li>)}</ul> : <p>No replacement files were found.</p>}</div>
+            <div className="ai-package-file-list"><strong>Replacement files ({importedPackage.files.length})</strong>{importedPackage.files.length ? <ul>{importedPackage.files.map((file) => <li key={`${file.source}:${file.target}`} className={file.exists ? "" : "missing"}><span>{file.exists ? "✓" : "!"}</span><code>{file.target}</code></li>)}</ul> : <p>No replacement files were found.</p>}</div>
             {importedPackage.warnings.length ? <div className="ai-package-warning-list"><strong>Validation notes</strong><ul>{importedPackage.warnings.map((warning) => <li key={warning}>{warning}</li>)}</ul></div> : null}
             <div className="ai-development-runner">
               <div><span>Guided Development Pipeline</span><strong>Install → Build → Ready to Commit</strong><p>Uses the reviewed package, the standard backup installer, and the detected safe build command.</p></div>

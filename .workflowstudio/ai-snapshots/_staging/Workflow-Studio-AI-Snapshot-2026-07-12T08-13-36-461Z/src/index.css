@@ -106,20 +106,3 @@ code {
   padding: 4px 8px;
   background: var(--code-bg);
 }
-
-
-/* v2.0.6.4 dark native controls */
-:root { color-scheme: dark; }
-html, body, #root { background: #0b1220; }
-* { scrollbar-width: thin; scrollbar-color: #475569 #0b1220; }
-*::-webkit-scrollbar { width: 10px; height: 10px; }
-*::-webkit-scrollbar-track { background: #0b1220; }
-*::-webkit-scrollbar-thumb { border: 2px solid #0b1220; border-radius: 999px; background: #475569; }
-*::-webkit-scrollbar-thumb:hover { background: #64748b; }
-*::selection { color: #eff6ff; background: rgba(37, 99, 235, .55); }
-input, textarea, select { color-scheme: dark; color: #e2e8f0; background: #0f172a; }
-input:-webkit-autofill, textarea:-webkit-autofill, select:-webkit-autofill {
-  -webkit-text-fill-color: #e2e8f0;
-  -webkit-box-shadow: 0 0 0 1000px #0f172a inset;
-  caret-color: #e2e8f0;
-}

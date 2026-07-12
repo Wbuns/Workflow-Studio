@@ -320,3 +320,9 @@ Completed
 
 - Added command categories, recent commands, and fuzzy matching.
 - Added search filters, history, and improved ranking.
+
+
+# v2.0.6.4 — Dark Controls and Package Builder Polish
+
+- Themed native controls and scrollbars.
+- Improved package file and command presentation.
