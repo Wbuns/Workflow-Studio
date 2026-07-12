@@ -1,3 +1,27 @@
+# v2.1.9 — Guided Release Workflow
+
+## Added
+
+- Visible release sequence for validation, build, snapshot, commit, and push.
+- Quick access to developer actions and the operation log.
+- Explicit user control retained for every release step.
+
+# v2.1.8 — Release Readiness Foundation
+
+## Added
+
+- Consolidated release preflight in Developer Tools.
+- Workspace, build, Git, remote, and AI snapshot readiness checks.
+- Release readiness score and next recommended action.
+
+# v2.1.7a — Automation History Reconciliation
+
+## Fixed
+
+- Build completion now matches its exact started record by execution ID.
+- Interrupted records can be reconciled instead of remaining indefinitely active.
+- Developer Tools snapshot creation is recorded in Automation History.
+
 # v2.1.7 — Git Automation Foundation
 
 ## Added

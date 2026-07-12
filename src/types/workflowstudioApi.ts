@@ -45,6 +45,7 @@ export type WorkflowStudioBridge = {
     validateWorkspace: (rootPath?: string) => Promise<DeveloperValidationReport>;
     listAutomationHistory: () => Promise<DeveloperAutomationRecord[]>;
     clearAutomationHistory: () => Promise<DeveloperWorkflowResult>;
+    reconcileAutomationHistory: () => Promise<DeveloperWorkflowResult>;
     recordAutomationOperation: (record: DeveloperAutomationRecord) => Promise<DeveloperAutomationRecord>;
     getGitAutomationState: (rootPath?: string) => Promise<DeveloperGitAutomationState>;
     commitChanges: (rootPath: string | undefined, message: string) => Promise<DeveloperWorkflowResult>;

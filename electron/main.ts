@@ -167,7 +167,7 @@ function runWorkspaceCommand(
 
     const automationRecords = readDeveloperAutomationHistory();
     const buildRecordIndex = automationRecords.findIndex(
-      (record) => record.action === "build" && record.rootPath === rootPath && record.status === "started",
+      (record) => record.action === "build" && record.executionId === executionId,
     );
     if (buildRecordIndex >= 0) {
       const buildRecord = automationRecords[buildRecordIndex];
@@ -2112,6 +2112,7 @@ type DeveloperWorkflowResult = {
   message: string;
   path?: string;
   details?: string[];
+  executionId?: string;
 };
 
 type DeveloperValidationCheck = {
@@ -2142,6 +2143,7 @@ type DeveloperAutomationRecord = {
   packageId?: string;
   exitCode?: number;
   details?: string[];
+  executionId?: string;
 };
 
 function developerAutomationHistoryPath() {
@@ -2176,6 +2178,32 @@ function appendDeveloperAutomationRecord(record: DeveloperAutomationRecord) {
   };
   writeDeveloperAutomationHistory([normalized, ...records.filter((entry) => entry.id !== normalized.id)]);
   return normalized;
+}
+
+
+function reconcileDeveloperAutomationHistory(): DeveloperWorkflowResult {
+  const now = Date.now();
+  let changed = 0;
+  const records = readDeveloperAutomationHistory().map((record) => {
+    if (record.status !== "started") return record;
+    const started = Date.parse(record.startedAt);
+    if (!Number.isFinite(started) || now - started < 10 * 60 * 1000) return record;
+    changed += 1;
+    return {
+      ...record,
+      status: "failed" as const,
+      finishedAt: new Date().toISOString(),
+      durationMs: Number.isFinite(started) ? Math.max(0, now - started) : undefined,
+      message: "Operation was interrupted before completion.",
+    };
+  });
+  writeDeveloperAutomationHistory(records);
+  return {
+    ok: true,
+    message: changed
+      ? `Reconciled ${changed} incomplete automation record${changed === 1 ? "" : "s"}.`
+      : "No incomplete automation records required cleanup.",
+  };
 }
 
 function recordDeveloperResult(
@@ -2467,6 +2495,7 @@ ipcMain.handle("developer:getGitAutomationState", (_event, rootPath?: string) =>
 ipcMain.handle("developer:commitChanges", (_event, rootPath: string | undefined, message: string) => commitDeveloperChanges(rootPath, message));
 ipcMain.handle("developer:pushBranch", (_event, rootPath?: string) => pushDeveloperBranch(rootPath));
 ipcMain.handle("developer:listAutomationHistory", () => readDeveloperAutomationHistory());
+ipcMain.handle("developer:reconcileAutomationHistory", () => reconcileDeveloperAutomationHistory());
 ipcMain.handle("developer:clearAutomationHistory", () => {
   writeDeveloperAutomationHistory([]);
   return { ok: true, message: "Automation history was cleared.", path: developerAutomationHistoryPath() };

@@ -5,6 +5,7 @@ export type DeveloperWorkflowResult = {
   message: string;
   path?: string;
   details?: string[];
+  executionId?: string;
 };
 
 export type DeveloperValidationCheck = {
@@ -46,7 +47,8 @@ export type DeveloperAutomationAction =
   | "clean-snapshot-staging"
   | "open-folder"
   | "git-commit"
-  | "git-push";
+  | "git-push"
+  | "create-snapshot";
 
 export type DeveloperAutomationRecord = {
   id: string;
@@ -62,6 +64,7 @@ export type DeveloperAutomationRecord = {
   packageId?: string;
   exitCode?: number;
   details?: string[];
+  executionId?: string;
 };
 
 
@@ -78,4 +81,20 @@ export type DeveloperGitAutomationState = {
   canCommit: boolean;
   canPush: boolean;
   message: string;
+};
+
+
+export type DeveloperReleaseCheck = {
+  id: string;
+  label: string;
+  status: "passed" | "warning" | "failed";
+  detail: string;
+};
+
+export type DeveloperReleaseReadiness = {
+  ready: boolean;
+  score: number;
+  generatedAt: string;
+  checks: DeveloperReleaseCheck[];
+  nextAction: string;
 };

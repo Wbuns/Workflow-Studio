@@ -2,6 +2,7 @@ import type {
   DeveloperAutomationRecord,
   DeveloperBuildSession,
   DeveloperGitAutomationState,
+  DeveloperReleaseReadiness,
   DeveloperPackageInstallResult,
   DeveloperValidationReport,
   DeveloperWorkflowResult,
@@ -50,6 +51,7 @@ export const DeveloperWorkflowService = {
       status: "started",
       startedAt: execution.startedAt,
       message: `Build started: ${execution.command}`,
+      executionId: execution.executionId,
     });
     return { ...execution, output: [] };
   },
@@ -102,6 +104,10 @@ export const DeveloperWorkflowService = {
     return requireDeveloperBridge().clearAutomationHistory();
   },
 
+  reconcileAutomationHistory(): Promise<DeveloperWorkflowResult> {
+    return requireDeveloperBridge().reconcileAutomationHistory();
+  },
+
   getGitAutomationState(rootPath?: string): Promise<DeveloperGitAutomationState> {
     return requireDeveloperBridge().getGitAutomationState(rootPath);
   },
@@ -112,5 +118,59 @@ export const DeveloperWorkflowService = {
 
   pushBranch(rootPath?: string): Promise<DeveloperWorkflowResult> {
     return requireDeveloperBridge().pushBranch(rootPath);
+  },
+
+  async getReleaseReadiness(rootPath?: string): Promise<DeveloperReleaseReadiness> {
+    const [validation, git, history] = await Promise.all([
+      this.validateWorkspace(rootPath),
+      this.getGitAutomationState(rootPath),
+      this.listAutomationHistory(),
+    ]);
+    const latestSnapshot = history.find((record) =>
+      record.action === "create-snapshot" && record.rootPath === rootPath && record.status === "success",
+    );
+    const checks = [
+      {
+        id: "workspace",
+        label: "Workspace validation",
+        status: validation.ok ? "passed" as const : validation.score >= 70 ? "warning" as const : "failed" as const,
+        detail: `Preflight score: ${validation.score}%.`,
+      },
+      {
+        id: "build",
+        label: "Successful build",
+        status: git.hasSuccessfulBuild ? "passed" as const : "failed" as const,
+        detail: git.hasSuccessfulBuild ? `Passed ${git.latestBuildAt ? new Date(git.latestBuildAt).toLocaleString() : "recently"}.` : "Run Build before release.",
+      },
+      {
+        id: "git",
+        label: "Git repository",
+        status: git.isRepository ? "passed" as const : "failed" as const,
+        detail: git.isRepository ? `Branch ${git.branch}; ${git.isClean ? "working tree clean" : `${git.changedFiles.length} changed file(s)`}.` : git.message,
+      },
+      {
+        id: "remote",
+        label: "Remote repository",
+        status: git.remote ? "passed" as const : "warning" as const,
+        detail: git.remote ? "Origin remote is configured." : "No origin remote is configured.",
+      },
+      {
+        id: "snapshot",
+        label: "AI snapshot",
+        status: latestSnapshot ? "passed" as const : "warning" as const,
+        detail: latestSnapshot ? `Latest recorded snapshot: ${new Date(latestSnapshot.startedAt).toLocaleString()}.` : "Create a current snapshot before release.",
+      },
+    ];
+    const passed = checks.filter((check) => check.status === "passed").length;
+    const score = Math.round((passed / checks.length) * 100);
+    const ready = checks.every((check) => check.status !== "failed");
+    const nextAction =
+      !validation.ok ? "Resolve workspace validation failures."
+      : !git.hasSuccessfulBuild ? "Run Build."
+      : !latestSnapshot ? "Create Snapshot."
+      : !git.isClean ? "Review and commit the current changes."
+      : !git.remote ? "Configure an origin remote."
+      : "Release preflight is ready.";
+    return { ready, score, generatedAt: new Date().toISOString(), checks, nextAction };
   },
 };

@@ -116,3 +116,34 @@
   min-width: 0;
   box-sizing: border-box;
 }
+
+.developer-release-readiness { display: grid; gap: 16px; }
+
+.developer-guided-release {
+  display: grid;
+  gap: 16px;
+}
+
+.developer-release-steps {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding-left: 24px;
+}
+
+.developer-release-steps li {
+  padding: 10px 12px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  background: var(--surface-subtle);
+}
+
+.developer-release-steps strong,
+.developer-release-steps span {
+  display: block;
+}
+
+.developer-release-steps span {
+  margin-top: 3px;
+  color: var(--text-muted);
+}

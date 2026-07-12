@@ -49,6 +49,7 @@ contextBridge.exposeInMainWorld("workflowStudio", {
     validateWorkspace: (rootPath?: string) => ipcRenderer.invoke("developer:validateWorkspace", rootPath),
     listAutomationHistory: () => ipcRenderer.invoke("developer:listAutomationHistory"),
     clearAutomationHistory: () => ipcRenderer.invoke("developer:clearAutomationHistory"),
+    reconcileAutomationHistory: () => ipcRenderer.invoke("developer:reconcileAutomationHistory"),
     recordAutomationOperation: (record: unknown) => ipcRenderer.invoke("developer:recordAutomationOperation", record),
     getGitAutomationState: (rootPath?: string) => ipcRenderer.invoke("developer:getGitAutomationState", rootPath),
     commitChanges: (rootPath: string | undefined, message: string) => ipcRenderer.invoke("developer:commitChanges", rootPath, message),

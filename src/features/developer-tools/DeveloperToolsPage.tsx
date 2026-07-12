@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import type { NavigationItem } from "../../types/navigation";
 import type { WorkspaceRecord } from "../../types/workspaceRegistry";
-import type { DeveloperAutomationRecord, DeveloperGitAutomationState, DeveloperValidationReport, DeveloperWorkflowResult } from "../../types/developerWorkflow";
+import type { DeveloperAutomationRecord, DeveloperGitAutomationState, DeveloperReleaseReadiness, DeveloperValidationReport, DeveloperWorkflowResult } from "../../types/developerWorkflow";
 import { DeveloperWorkflowService } from "../../services/DeveloperWorkflowService";
 import { createAISnapshot, openAISnapshotFolder } from "../ai-development/AIDevelopmentService";
 import "./DeveloperToolsPage.css";
@@ -22,6 +22,7 @@ export function DeveloperToolsPage({
   const [automationHistory, setAutomationHistory] = useState<DeveloperAutomationRecord[]>([]);
   const [gitAutomation, setGitAutomation] = useState<DeveloperGitAutomationState>();
   const [commitMessage, setCommitMessage] = useState("");
+  const [releaseReadiness, setReleaseReadiness] = useState<DeveloperReleaseReadiness>();
 
   useEffect(() => DeveloperWorkflowService.subscribeToBuildOutput((line) => {
     setBuildOutput((current) => [...current.slice(-299), line]);
@@ -184,7 +185,19 @@ export function DeveloperToolsPage({
             <button
               type="button"
               onClick={() => runAction("create-snapshot", async () => {
+                const startedAt = new Date().toISOString();
                 const snapshotResult = await createAISnapshot(rootPath);
+                await window.workflowStudio?.developer?.recordAutomationOperation({
+                  id: `automation-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+                  action: "create-snapshot",
+                  label: "Create snapshot",
+                  workspaceName: activeWorkspace?.name,
+                  rootPath,
+                  status: snapshotResult.ok ? "success" : "failed",
+                  startedAt,
+                  finishedAt: new Date().toISOString(),
+                  message: snapshotResult.message,
+                });
                 return {
                   ok: snapshotResult.ok,
                   message: snapshotResult.message,
@@ -250,6 +263,65 @@ export function DeveloperToolsPage({
       ) : null}
 
 
+
+
+      <section className="detail-panel developer-guided-release">
+        <div>
+          <h3>Guided Release Workflow</h3>
+          <p>Complete the release steps in order while keeping every action explicit.</p>
+        </div>
+        <ol className="developer-release-steps">
+          <li><strong>Validate</strong><span>Run Workspace Validation and resolve failures.</span></li>
+          <li><strong>Build</strong><span>Run a successful build for the active workspace.</span></li>
+          <li><strong>Snapshot</strong><span>Create a current AI snapshot.</span></li>
+          <li><strong>Commit</strong><span>Review the message and commit the completed milestone.</span></li>
+          <li><strong>Push</strong><span>Push only after reviewing the committed branch.</span></li>
+        </ol>
+        <div className="developer-tool-actions">
+          <button type="button" onClick={() => document.querySelector<HTMLButtonElement>(".developer-tools-grid button")?.focus()}>
+            Focus Developer Actions
+          </button>
+          <button type="button" onClick={() => void refreshAutomationHistory()}>
+            Refresh Operation Log
+          </button>
+        </div>
+      </section>
+
+      <section className="detail-panel developer-release-readiness">
+        <div className="developer-console-header">
+          <div>
+            <h3>Release Readiness</h3>
+            <p>{releaseReadiness?.nextAction ?? "Run the release preflight when the workspace is ready."}</p>
+          </div>
+          <div className="developer-tool-actions">
+            <button type="button" onClick={async () => {
+              setBusyAction("release-readiness");
+              try {
+                const readiness = await DeveloperWorkflowService.getReleaseReadiness(rootPath);
+                setReleaseReadiness(readiness);
+                setResult({ ok: readiness.ready, message: `Release readiness score: ${readiness.score}%` });
+              } catch (error) {
+                setResult({ ok: false, message: error instanceof Error ? error.message : "Release preflight failed." });
+              } finally {
+                setBusyAction(undefined);
+              }
+            }} disabled={!rootPath || Boolean(busyAction)}>
+              Run Release Preflight
+            </button>
+          </div>
+        </div>
+        {releaseReadiness ? (
+          <div className="developer-validation-list">
+            {releaseReadiness.checks.map((check) => (
+              <article className={`developer-validation-check ${check.status}`} key={check.id}>
+                <span>{check.status === "passed" ? "✓" : check.status === "warning" ? "!" : "×"}</span>
+                <div><strong>{check.label}</strong><p>{check.detail}</p></div>
+              </article>
+            ))}
+          </div>
+        ) : null}
+      </section>
+
       <section className="detail-panel developer-automation-history">
         <div className="developer-console-header">
           <div>
@@ -259,6 +331,9 @@ export function DeveloperToolsPage({
           <div className="developer-tool-actions">
             <button type="button" onClick={() => void refreshAutomationHistory()} disabled={Boolean(busyAction)}>
               Refresh
+            </button>
+            <button type="button" onClick={() => runAction("reconcile-history", () => DeveloperWorkflowService.reconcileAutomationHistory())} disabled={Boolean(busyAction)}>
+              Clean Incomplete Records
             </button>
             <button type="button" onClick={() => runAction("clear-history", async () => {
               const cleared = await DeveloperWorkflowService.clearAutomationHistory();
