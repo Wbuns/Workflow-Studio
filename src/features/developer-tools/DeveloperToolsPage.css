@@ -1,0 +1,8 @@
+.developer-tools-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+.developer-tool-card { display: flex; flex-direction: column; gap: 14px; }
+.developer-tool-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.developer-tool-actions button { min-height: 38px; }
+.developer-result-panel { margin-top: 18px; text-align: left; }
+.developer-result-panel.error { border-color: rgba(248, 113, 113, .55); }
+.developer-result-panel ul { margin: 12px 0 0; padding-left: 22px; }
+@media (max-width: 900px) { .developer-tools-grid { grid-template-columns: 1fr; } }

@@ -27,6 +27,13 @@ contextBridge.exposeInMainWorld("workflowStudio", {
             return () => ipcRenderer.removeListener("workspace:commandOutput", handler);
         },
     },
+    developer: {
+        openDownloads: () => ipcRenderer.invoke("developer:openDownloads"),
+        openPackageFolder: (rootPath) => ipcRenderer.invoke("developer:openPackageFolder", rootPath),
+        openBackupFolder: (rootPath) => ipcRenderer.invoke("developer:openBackupFolder", rootPath),
+        cleanSnapshotStaging: () => ipcRenderer.invoke("developer:cleanSnapshotStaging"),
+        validateWorkspace: (rootPath) => ipcRenderer.invoke("developer:validateWorkspace", rootPath),
+    },
     scanWorkspace: (rootPath) => ipcRenderer.invoke("workspace:scan", rootPath),
     openWorkspaceFolder: () => ipcRenderer.invoke("workspace:openFolder"),
 });

@@ -1,5 +1,6 @@
 import { AIWorkspacePage } from "../../features/ai-development/AIDevelopmentPage";
 import { DashboardPage } from "../../features/dashboard/DashboardPage";
+import { DeveloperToolsPage } from "../../features/developer-tools/DeveloperToolsPage";
 import { DocumentationPage } from "../../features/documentation/DocumentationPage";
 import { GitPage } from "../../features/git/GitPage";
 import { PackagesPage } from "../../features/packages/PackagesPage";
@@ -57,6 +58,7 @@ export function Workspace({
       {activePage.id === "templates" && (
         <TemplatesPage activePage={activePage} rootPath={rootPath} />
       )}
+      {activePage.id === "developer-tools" && <DeveloperToolsPage activePage={activePage} activeWorkspace={activeWorkspace} />}
       {activePage.id === "settings" && <SettingsPage activePage={activePage} />}
     </main>
   );

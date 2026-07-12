@@ -1,3 +1,12 @@
+# v2.1.5.1 — Developer Tools Foundation
+
+## Added
+
+- Developer Tools navigation and workspace page.
+- Shared DeveloperWorkflowService.
+- Safe folder-opening, snapshot cleanup, and validation bridge operations.
+- Foundation for package, build, and validation automation.
+
 # v2.1.4 — Active Workspace Transition Coordination
 
 ## Added

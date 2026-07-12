@@ -1,6 +1,41 @@
 {
   "snapshots": [
     {
+      "id": "Workflow-Studio-AI-Snapshot-2026-07-12T18-52-08-303Z",
+      "name": "Workflow-Studio-AI-Snapshot-2026-07-12T18-52-08-303Z.zip",
+      "filePath": "C:\\Users\\mitch\\Desktop\\GPT Workflow Studio\\.workflowstudio\\ai-snapshots\\Workflow-Studio-AI-Snapshot-2026-07-12T18-52-08-303Z.zip",
+      "createdAt": "2026-07-12T18:52:10.069Z",
+      "rootPath": "C:\\Users\\mitch\\Desktop\\GPT Workflow Studio",
+      "includedRoots": [
+        "docs",
+        "prompts",
+        "templates",
+        "tools",
+        "src",
+        "electron",
+        "README.md",
+        "readme.md",
+        "package.json",
+        "package-lock.json",
+        "tsconfig.json",
+        "tsconfig.app.json",
+        "tsconfig.electron.json",
+        "vite.config.ts",
+        ".gitignore",
+        ".workflowstudio/project.json"
+      ],
+      "excludedPatterns": [
+        "node_modules",
+        "dist",
+        ".git",
+        "_backup",
+        ".vite",
+        "coverage",
+        "*.log"
+      ],
+      "sizeBytes": 216764
+    },
+    {
       "id": "Workflow-Studio-AI-Snapshot-2026-07-12T17-59-24-249Z",
       "name": "Workflow-Studio-AI-Snapshot-2026-07-12T17-59-24-249Z.zip",
       "filePath": "C:\\Users\\mitch\\Desktop\\GPT Workflow Studio\\.workflowstudio\\ai-snapshots\\Workflow-Studio-AI-Snapshot-2026-07-12T17-59-24-249Z.zip",
@@ -260,16 +295,6 @@
       "name": "Workflow-Studio-AI-Snapshot-2026-07-11T06-31-58-273Z.zip",
       "filePath": "C:\\Users\\mitch\\Desktop\\GPT Workflow Studio\\.workflowstudio\\ai-snapshots\\Workflow-Studio-AI-Snapshot-2026-07-11T06-31-58-273Z.zip",
       "createdAt": "2026-07-11T06:31:58.735Z",
-      "rootPath": "C:\\Users\\mitch\\Desktop\\GPT Workflow Studio",
-      "includedRoots": [],
-      "excludedPatterns": [],
-      "sizeBytes": 154181
-    },
-    {
-      "id": "Workflow-Studio-AI-Snapshot-2026-07-11T06-31-53-735Z",
-      "name": "Workflow-Studio-AI-Snapshot-2026-07-11T06-31-53-735Z.zip",
-      "filePath": "C:\\Users\\mitch\\Desktop\\GPT Workflow Studio\\.workflowstudio\\ai-snapshots\\Workflow-Studio-AI-Snapshot-2026-07-11T06-31-53-735Z.zip",
-      "createdAt": "2026-07-11T06:31:54.211Z",
       "rootPath": "C:\\Users\\mitch\\Desktop\\GPT Workflow Studio",
       "includedRoots": [],
       "excludedPatterns": [],

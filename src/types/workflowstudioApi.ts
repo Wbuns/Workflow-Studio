@@ -3,6 +3,7 @@ import type {
   AiContinuationPrompt,
   WorkspaceProjectMetadata,
 } from "./workspace";
+import type { DeveloperValidationReport, DeveloperWorkflowResult } from "./developerWorkflow";
 import type { WorkspaceCommandExecution, WorkspaceCommandOutput } from "./workspaceAnalysis";
 
 export type GitFileStatus = {
@@ -32,6 +33,13 @@ export type WorkflowStudioBridge = {
     runCommand?: (rootPath: string | undefined, commandId: string, approvedPermission?: "interactive" | "device-changing") => Promise<WorkspaceCommandExecution>;
     cancelCommand?: (executionId: string) => Promise<{ ok: boolean; message: string }>;
     onCommandOutput?: (listener: (output: WorkspaceCommandOutput) => void) => () => void;
+  };
+  developer?: {
+    openDownloads: () => Promise<DeveloperWorkflowResult>;
+    openPackageFolder: (rootPath?: string) => Promise<DeveloperWorkflowResult>;
+    openBackupFolder: (rootPath?: string) => Promise<DeveloperWorkflowResult>;
+    cleanSnapshotStaging: () => Promise<DeveloperWorkflowResult>;
+    validateWorkspace: (rootPath?: string) => Promise<DeveloperValidationReport>;
   };
   git?: {
     getStatus: () => Promise<GitRepositoryStatus>;

@@ -13,14 +13,14 @@ type NavigationGroup = { label: string; itemIds: string[] };
 
 const navigationGroups: NavigationGroup[] = [
   { label: "Workspace", itemIds: ["dashboard", "projects", "ai-workspace", "timeline"] },
-  { label: "Development", itemIds: ["packages", "documentation", "git"] },
+  { label: "Development", itemIds: ["packages", "documentation", "git", "developer-tools"] },
   { label: "Library", itemIds: ["templates"] },
   { label: "System", itemIds: ["settings"] },
 ];
 
 const navigationIcons: Record<string, string> = {
   dashboard: "◫", projects: "◆", "ai-workspace": "✦", timeline: "◷",
-  packages: "▣", documentation: "▤", git: "⑂", templates: "◇", settings: "⚙",
+  packages: "▣", documentation: "▤", git: "⑂", "developer-tools": "⚒", templates: "◇", settings: "⚙",
 };
 
 export function Sidebar({ activePageId, navigationItems, collapsed, onNavigate, onToggleCollapsed }: SidebarProps) {

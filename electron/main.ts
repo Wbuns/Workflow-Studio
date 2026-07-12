@@ -2003,6 +2003,66 @@ function runDevelopmentPipeline(rootPathInput: string | undefined, packagePathIn
 
   return { ok: true, message: "Package installed and the build passed.", completedAt, suggestedCommitMessage, install: { status: "completed", output: installOutput }, build: { status: "completed", command: buildCommand.command, output: buildOutput } };
 }
+
+type DeveloperWorkflowResult = {
+  ok: boolean;
+  message: string;
+  path?: string;
+  details?: string[];
+};
+
+type DeveloperValidationCheck = {
+  id: string;
+  label: string;
+  status: "passed" | "warning" | "failed";
+  detail: string;
+};
+
+type DeveloperValidationReport = {
+  ok: boolean;
+  score: number;
+  checks: DeveloperValidationCheck[];
+  generatedAt: string;
+};
+
+async function openDeveloperPath(folderPath: string, label: string): Promise<DeveloperWorkflowResult> {
+  fs.mkdirSync(folderPath, { recursive: true });
+  const error = await shell.openPath(folderPath);
+  return error
+    ? { ok: false, message: `Unable to open ${label}: ${error}`, path: folderPath }
+    : { ok: true, message: `Opened ${label}.`, path: folderPath };
+}
+
+function validateDeveloperWorkspace(rootPathInput?: string): DeveloperValidationReport {
+  const rootPath = normalizeRoot(rootPathInput);
+  const analysis = scanWorkspace(rootPath);
+  const checks: DeveloperValidationCheck[] = [
+    { id: "root", label: "Workspace root", status: fs.existsSync(rootPath) ? "passed" : "failed", detail: rootPath },
+    { id: "metadata", label: "Project metadata", status: analysis.hasWorkflowMetadata ? "passed" : "warning", detail: analysis.hasWorkflowMetadata ? "Detected .workflowstudio/project.json." : "Project metadata was not detected." },
+    { id: "git", label: "Git repository", status: analysis.hasGit ? "passed" : "warning", detail: analysis.hasGit ? "Git repository detected." : "Git repository was not detected." },
+    { id: "documentation", label: "Documentation", status: analysis.hasDocs ? "passed" : "warning", detail: analysis.hasDocs ? "Documentation folders detected." : "Documentation folder was not detected." },
+    { id: "build", label: "Build command", status: analysis.buildCommand ? "passed" : "warning", detail: analysis.buildCommand ?? "Build command was not detected." },
+  ];
+  const passed = checks.filter((check) => check.status === "passed").length;
+  const failed = checks.some((check) => check.status === "failed");
+  return { ok: !failed, score: Math.round((passed / checks.length) * 100), checks, generatedAt: new Date().toISOString() };
+}
+
+function cleanDeveloperSnapshotStaging(): DeveloperWorkflowResult {
+  const stagingRoot = path.join(app.getPath("temp"), "workflow-studio-ai-snapshots");
+  try {
+    fs.rmSync(stagingRoot, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
+    return { ok: true, message: "Snapshot staging was cleaned.", path: stagingRoot };
+  } catch (error) {
+    return { ok: false, message: error instanceof Error ? error.message : "Unable to clean snapshot staging.", path: stagingRoot };
+  }
+}
+
+ipcMain.handle("developer:openDownloads", () => openDeveloperPath(app.getPath("downloads"), "Downloads"));
+ipcMain.handle("developer:openPackageFolder", (_event, rootPath?: string) => openDeveloperPath(path.join(normalizeRoot(rootPath), "_packages"), "package folder"));
+ipcMain.handle("developer:openBackupFolder", (_event, rootPath?: string) => openDeveloperPath(path.join(normalizeRoot(rootPath), "_backup"), "backup folder"));
+ipcMain.handle("developer:cleanSnapshotStaging", () => cleanDeveloperSnapshotStaging());
+ipcMain.handle("developer:validateWorkspace", (_event, rootPath?: string) => validateDeveloperWorkspace(rootPath));
 ipcMain.handle("workspace:runCommand", (event, rootPath: string | undefined, commandId: string, approvedPermission?: "interactive" | "device-changing") =>
   runWorkspaceCommand(event.sender, rootPath, commandId, approvedPermission),
 );

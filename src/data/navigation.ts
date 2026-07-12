@@ -74,6 +74,15 @@ export const navigationItems: NavigationItem[] = [
     actionLabel: "Browse Templates",
   },
   {
+    id: "developer-tools",
+    label: "Developer Tools",
+    eyebrow: "Development Automation",
+    title: "Developer Tools",
+    description:
+      "Install packages, run builds, validate workspaces, and maintain development state from one safe control surface.",
+    actionLabel: "Open Developer Tools",
+  },
+  {
     id: "settings",
     label: "Settings",
     eyebrow: "Configuration",
