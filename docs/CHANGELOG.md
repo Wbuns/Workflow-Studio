@@ -268,3 +268,14 @@ Completed
 - Disabled package actions now report `No Packageable Changes Detected`.
 - Removed the duplicate Open Snapshot Folder action from the Snapshots tab.
 \n\n# v2.0.3 — Global Workspace Search\n\n## Added\n\n- Ctrl+K project-wide search overlay.\n- Unified search results for documentation, packages, snapshots, timeline activity, templates, metadata, and navigation.\n- Keyboard navigation and secure active-workspace opening.\n\n\n# v2.0.4 — Project Intelligence\n\n## Added\n\n- Proactive Dashboard insights derived from shared workspace analysis.\n- Documentation-versus-implementation, testing, command availability, health, and next-action observations.\n- Clear positive, informational, and attention states with relevant navigation actions.\n
+# v2.0.5.1 — Development Session Engine
+
+## Added
+
+- Provider-independent `DevelopmentSession` shared model.
+- UI-independent `DevelopmentSessionService` for assembling workspace, documentation, command, Git, recommendation, and Developer Request context.
+- Canonical continuation and combined prompts stored on each development session.
+
+## Changed
+
+- AI Workspace now consumes a typed development session while preserving its existing visual behavior and package safety workflow.

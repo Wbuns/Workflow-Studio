@@ -1,11 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
+import { createDevelopmentSession } from "../../services/DevelopmentSessionService";
 import type { NavigationItem } from "../../types/navigation";
 import type { WorkspaceRecord } from "../../types/workspaceRegistry";
 import "./AIDevelopmentPage.css";
 import {
   buildAIWorkspaceContext,
-  buildCombinedPrompt,
-  buildContinuationPrompt,
   copyText,
   createAIPackage,
   createAISnapshot,
@@ -94,20 +93,23 @@ export function AIWorkspacePage({ activePage, activeWorkspace }: AIDevelopmentPa
     }, 3000);
   }
 
-  const prompt = useMemo(
-    () => buildContinuationPrompt(analysis, gitStatus),
-    [analysis, gitStatus],
-  );
-
   const workspaceContext = useMemo(
     () => buildAIWorkspaceContext(analysis),
     [analysis],
   );
 
-  const combinedPrompt = useMemo(
-    () => buildCombinedPrompt(prompt, developerRequest),
-    [developerRequest, prompt],
+  const developmentSession = useMemo(
+    () => createDevelopmentSession({
+      analysis,
+      gitStatus,
+      workspaceContext,
+      developerRequest,
+    }),
+    [analysis, developerRequest, gitStatus, workspaceContext],
   );
+
+  const prompt = developmentSession.continuationPrompt;
+  const combinedPrompt = developmentSession.combinedPrompt;
 
   const packageReadiness = useMemo<PackageReadiness>(() => {
     const reasons: string[] = [];

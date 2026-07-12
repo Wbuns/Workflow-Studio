@@ -131,3 +131,21 @@ AI should help developers think more clearly—not think less.
 - Development Workflow.md
 - Package System.md
 - Design Bible.md
+---
+
+# Development Session Engine
+
+Workflow Studio uses a provider-independent Development Session Engine as the canonical input for AI-assisted development workflows.
+
+A development session collects:
+
+- Workspace analysis and project identity
+- Current milestone and lifecycle readiness
+- Documentation and embedded specification paths
+- Workspace commands and build metadata
+- Git status
+- Developer Request
+- Continuation and combined prompts
+- Warnings and recommended next actions
+
+The engine is implemented as UI-independent service logic. AI Workspace consumes the resulting typed session while preserving the existing prompt presentation. Future package-generation and AI-provider integrations should consume the same session model rather than rebuilding context independently.

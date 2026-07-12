@@ -1,8 +1,8 @@
 {
   "name": "Workflow Studio",
   "description": "A desktop tool for package-based AI-assisted software development.",
-  "version": "2.0.4",
-  "currentMilestone": "v2.0.4-project-intelligence",
+  "version": "2.0.5",
+  "currentMilestone": "v2.0.5.1-development-session-engine",
   "projectType": "electron-react-typescript",
   "buildCommand": "npm run build",
   "testCommand": "",
@@ -11,5 +11,5 @@
   "documentationPaths": [
     "docs"
   ],
-  "status": "Unified Project Workspace active"
+  "status": "Development Session Engine active"
 }

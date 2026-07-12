@@ -394,3 +394,12 @@ Every subsystem should improve the overall maintainability of Workflow Studio.
 - Package System.md
 - Coding Standards.md
 - AI Workflow.md
+---
+
+# Development Session Architecture
+
+The Development Session Engine is the orchestration boundary between Workspace Intelligence and AI-facing workflows.
+
+`DevelopmentSessionService` receives analyzed workspace data, Git state, lifecycle readiness, and the Developer Request. It produces a strongly typed, provider-independent `DevelopmentSession` containing canonical prompts and supporting context.
+
+Presentation components consume this model but do not assemble development context themselves. Future AI package generation, provider adapters, session history, and milestone automation should build on this service rather than duplicating prompt or workspace logic.
