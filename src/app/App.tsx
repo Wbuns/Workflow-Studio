@@ -11,7 +11,10 @@ import {
   getActiveProject,
   getRecentProjects,
   openWorkspaceFolder,
+  refreshProjectHealth,
+  removeProject,
   selectWorkspace,
+  setProjectFavorite,
 } from "../services/WorkspaceRegistryService";
 import type { WorkspaceRegistryState } from "../types/workspaceRegistry";
 import { loadWorkspacePreferences, updateWorkspacePreferences } from "../services/WorkspacePreferencesService";
@@ -84,6 +87,19 @@ function App() {
     setWorkspaceRegistry(nextRegistry);
   }
 
+  function handleToggleFavorite(projectId: string, isFavorite: boolean) {
+    setWorkspaceRegistry((current) => setProjectFavorite(current, projectId, isFavorite));
+  }
+
+  function handleRemoveProject(projectId: string) {
+    setWorkspaceRegistry((current) => removeProject(current, projectId));
+  }
+
+  async function handleRefreshProject(projectId: string) {
+    const nextRegistry = await refreshProjectHealth(workspaceRegistry, projectId);
+    setWorkspaceRegistry(nextRegistry);
+  }
+
   return (
     <div className={sidebarCollapsed ? "app-shell sidebar-collapsed" : "app-shell"}>
       <Header
@@ -100,7 +116,17 @@ function App() {
         onNavigate={handleNavigate}
         onToggleCollapsed={() => setSidebarCollapsed((current) => !current)}
       />
-      <Workspace activePage={activePage} activeWorkspace={activeWorkspace} onNavigate={handleNavigate} />
+      <Workspace
+        activePage={activePage}
+        activeWorkspace={activeWorkspace}
+        workspaceRegistry={workspaceRegistry}
+        onNavigate={handleNavigate}
+        onOpenWorkspace={handleOpenWorkspace}
+        onSelectWorkspace={handleSelectWorkspace}
+        onToggleFavorite={handleToggleFavorite}
+        onRemoveProject={handleRemoveProject}
+        onRefreshProject={handleRefreshProject}
+      />
       <StatusBar activePage={activePage} activeWorkspace={activeWorkspace} />
       <CommandPalette navigationItems={navigationItems} onNavigate={handleNavigate} />
       <WorkspaceSearch rootPath={activeWorkspace?.rootPath} navigationItems={navigationItems} onNavigate={handleNavigate} />

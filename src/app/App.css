@@ -1574,3 +1574,13 @@ button:active:not(:disabled) { transform:translateY(1px); }
 .timeline-event-content { transition:border-color .15s ease,transform .15s ease,background .15s ease; }
 .timeline-event-content:hover { border-color:rgba(96,165,250,.28);background:rgba(15,23,42,.72);transform:translateY(-1px); }
 .timeline-event-heading time { font-variant-numeric:tabular-nums; }
+
+
+.registered-project-list { display: grid; gap: 12px; margin-top: 16px; }
+.registered-project-card { display: flex; justify-content: space-between; gap: 20px; align-items: center; padding: 16px; border: 1px solid var(--border-color, #303746); border-radius: 12px; background: rgba(255,255,255,0.02); }
+.registered-project-card.active { border-color: var(--accent-color, #6ea8fe); }
+.registered-project-main { display: grid; gap: 5px; min-width: 0; }
+.registered-project-main span, .registered-project-main small { overflow-wrap: anywhere; }
+.project-favorite-mark { margin-right: 8px; }
+.registered-project-actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
+@media (max-width: 900px) { .registered-project-card { align-items: stretch; flex-direction: column; } .registered-project-actions { justify-content: flex-start; } }

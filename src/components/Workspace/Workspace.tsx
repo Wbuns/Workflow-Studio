@@ -8,22 +8,40 @@ import { TemplatesPage } from "../../features/templates/TemplatesPage";
 import { SettingsPage } from "../../features/settings/SettingsPage";
 import { TimelinePage } from "../../features/timeline/TimelinePage";
 import type { NavigationItem } from "../../types/navigation";
-import type { WorkspaceRecord } from "../../types/workspaceRegistry";
+import type { WorkspaceRecord, WorkspaceRegistryState } from "../../types/workspaceRegistry";
 
 type WorkspaceProps = {
   activePage: NavigationItem;
   activeWorkspace?: WorkspaceRecord;
+  workspaceRegistry: WorkspaceRegistryState;
   onNavigate: (pageId: string) => void;
+  onOpenWorkspace: () => Promise<void>;
+  onSelectWorkspace: (projectId: string) => void;
+  onToggleFavorite: (projectId: string, isFavorite: boolean) => void;
+  onRemoveProject: (projectId: string) => void;
+  onRefreshProject: (projectId: string) => Promise<void>;
 };
 
-export function Workspace({ activePage, activeWorkspace, onNavigate }: WorkspaceProps) {
+export function Workspace({
+  activePage, activeWorkspace, workspaceRegistry, onNavigate, onOpenWorkspace,
+  onSelectWorkspace, onToggleFavorite, onRemoveProject, onRefreshProject,
+}: WorkspaceProps) {
   const rootPath = activeWorkspace?.rootPath;
 
   return (
     <main className="workspace">
       {activePage.id === "dashboard" && <DashboardPage activePage={activePage} rootPath={rootPath} onNavigate={onNavigate} />}
       {activePage.id === "projects" && (
-        <ProjectsPage activePage={activePage} activeWorkspace={activeWorkspace} />
+        <ProjectsPage
+          activePage={activePage}
+          activeWorkspace={activeWorkspace}
+          registry={workspaceRegistry}
+          onAddProject={onOpenWorkspace}
+          onSelectProject={onSelectWorkspace}
+          onToggleFavorite={onToggleFavorite}
+          onRemoveProject={onRemoveProject}
+          onRefreshProject={onRefreshProject}
+        />
       )}
       {activePage.id === "timeline" && <TimelinePage activePage={activePage} rootPath={rootPath} />}
       {activePage.id === "packages" && (

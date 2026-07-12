@@ -1,9 +1,9 @@
-# v2.1.1a — Snapshot Staging Reliability
+# v2.1.2 — Project Registration
 
-- Excluded AI snapshot staging folders from Vite watching.
-- Added retry-aware Windows cleanup.
-- Added unique staging-folder fallback.
-- Preserved snapshot output and history behavior.
+- Added registered-project management to Projects.
+- Added project favorites and removal.
+- Added project health refresh through Workspace Intelligence.
+- Preserved active-workspace services and package safety.
 
 
 # v2.0.2 — Command Palette and Workspace Refinement

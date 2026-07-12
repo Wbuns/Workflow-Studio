@@ -261,6 +261,26 @@ export function setProjectFavorite(
   });
 }
 
+export async function refreshProjectHealth(
+  state: WorkspaceRegistryState,
+  projectId: string,
+): Promise<WorkspaceRegistryState> {
+  const project = state.projects.find((item) => item.id === projectId);
+  if (!project) return state;
+
+  try {
+    const analysis = await scanWorkspace(project.rootPath);
+    const refreshed = workspaceFromAnalysis(analysis, project);
+    return writeRegistry({
+      ...state,
+      projects: state.projects.map((item) => item.id === projectId ? refreshed : item),
+    });
+  } catch (error) {
+    console.warn("Unable to refresh registered project health.", error);
+    return state;
+  }
+}
+
 export async function loadWorkspaceRegistry(): Promise<WorkspaceRegistryState> {
   const registry = readRegistry();
   const analysis = await scanWorkspace();

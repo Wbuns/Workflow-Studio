@@ -1,8 +1,8 @@
 {
   "name": "Workflow Studio",
   "description": "A desktop tool for package-based AI-assisted software development.",
-  "version": "2.1.1-a",
-  "currentMilestone": "v2.1.1a-snapshot-staging-reliability",
+  "version": "2.1.2",
+  "currentMilestone": "v2.1.2-project-registration",
   "projectType": "electron-react-typescript",
   "buildCommand": "npm run build",
   "testCommand": "",
