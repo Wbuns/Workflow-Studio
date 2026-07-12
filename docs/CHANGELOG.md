@@ -1,3 +1,10 @@
+# v2.1.1a — Snapshot Staging Reliability
+
+- Excluded AI snapshot staging folders from Vite watching.
+- Added retry-aware Windows cleanup.
+- Added unique staging-folder fallback.
+- Preserved snapshot output and history behavior.
+
 
 # v2.0.2 — Command Palette and Workspace Refinement
 

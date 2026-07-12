@@ -951,6 +951,41 @@ function compressFolder(sourceFolder, destinationZip) {
     ].join(" ");
     execSync(command, { stdio: "pipe" });
 }
+function removeDirectoryWithRetry(folderPath, attempts = 5) {
+    if (!fs.existsSync(folderPath))
+        return;
+    let lastError;
+    for (let attempt = 0; attempt < attempts; attempt += 1) {
+        try {
+            fs.rmSync(folderPath, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 });
+            return;
+        }
+        catch (error) {
+            lastError = error;
+            const waitUntil = Date.now() + 100 * (attempt + 1);
+            while (Date.now() < waitUntil) {
+                // Brief synchronous backoff keeps snapshot creation deterministic on Windows.
+            }
+        }
+    }
+    throw lastError;
+}
+function createSnapshotStagingFolder(outputFolder, snapshotName) {
+    const stagingRoot = path.join(outputFolder, "_staging");
+    fs.mkdirSync(stagingRoot, { recursive: true });
+    const preferredFolder = path.join(stagingRoot, snapshotName);
+    try {
+        removeDirectoryWithRetry(preferredFolder);
+        fs.mkdirSync(preferredFolder, { recursive: true });
+        return preferredFolder;
+    }
+    catch (error) {
+        console.warn("Unable to reuse the preferred AI snapshot staging folder.", error);
+        const fallbackFolder = path.join(stagingRoot, `${snapshotName}-${process.pid}-${Math.random().toString(36).slice(2, 8)}`);
+        fs.mkdirSync(fallbackFolder, { recursive: true });
+        return fallbackFolder;
+    }
+}
 function createAISnapshot(rootPathInput) {
     const rootPath = normalizeRoot(rootPathInput);
     if (!fs.existsSync(rootPath) || !fs.statSync(rootPath).isDirectory()) {
@@ -960,12 +995,10 @@ function createAISnapshot(rootPathInput) {
     const timestamp = safeTimestamp();
     const snapshotName = `${analysis.projectName || path.basename(rootPath)}-AI-Snapshot-${timestamp}`.replace(/[^a-z0-9._-]+/gi, "-");
     const outputFolder = snapshotRoot(rootPath);
-    const stagingFolder = path.join(outputFolder, "_staging", snapshotName);
+    fs.mkdirSync(outputFolder, { recursive: true });
+    const stagingFolder = createSnapshotStagingFolder(outputFolder, snapshotName);
     const destinationZip = path.join(outputFolder, `${snapshotName}.zip`);
     const includedRoots = [];
-    fs.rmSync(stagingFolder, { recursive: true, force: true });
-    fs.mkdirSync(stagingFolder, { recursive: true });
-    fs.mkdirSync(outputFolder, { recursive: true });
     const candidates = [
         "docs",
         "Documentation",
@@ -1004,8 +1037,17 @@ function createAISnapshot(rootPathInput) {
         excludedPatterns: ["node_modules", "dist", ".git", "_backup", ".vite", "coverage", "*.log"],
         health: analysis.health,
     });
-    compressFolder(stagingFolder, destinationZip);
-    fs.rmSync(stagingFolder, { recursive: true, force: true });
+    try {
+        compressFolder(stagingFolder, destinationZip);
+    }
+    finally {
+        try {
+            removeDirectoryWithRetry(stagingFolder);
+        }
+        catch (error) {
+            console.warn("Unable to remove the AI snapshot staging folder after compression.", error);
+        }
+    }
     const snapshot = {
         id: snapshotName,
         name: `${snapshotName}.zip`,
