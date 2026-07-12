@@ -164,6 +164,27 @@ function runWorkspaceCommand(
     running.execution.exitCode = code ?? undefined;
     running.execution.finishedAt = new Date().toISOString();
     running.execution.message = signal ? `Stopped by ${signal}.` : code === 0 ? "Command completed successfully." : `Command exited with code ${code ?? "unknown"}.`;
+
+    const automationRecords = readDeveloperAutomationHistory();
+    const buildRecordIndex = automationRecords.findIndex(
+      (record) => record.action === "build" && record.rootPath === rootPath && record.status === "started",
+    );
+    if (buildRecordIndex >= 0) {
+      const buildRecord = automationRecords[buildRecordIndex];
+      automationRecords[buildRecordIndex] = {
+        ...buildRecord,
+        status: code === 0 ? "success" : "failed",
+        finishedAt: running.execution.finishedAt,
+        durationMs: Math.max(
+          0,
+          Date.parse(running.execution.finishedAt) - Date.parse(buildRecord.startedAt),
+        ),
+        exitCode: code ?? undefined,
+        message: running.execution.message,
+      };
+      writeDeveloperAutomationHistory(automationRecords);
+    }
+
     emitCommandOutput(target, executionId, "system", `\n${running.execution.message}\n`);
     runningWorkspaceCommands.delete(executionId);
   });
@@ -2109,7 +2130,7 @@ type DeveloperValidationReport = {
 
 type DeveloperAutomationRecord = {
   id: string;
-  action: "install-package" | "build" | "validate-workspace" | "clean-snapshot-staging" | "open-folder";
+  action: "install-package" | "build" | "validate-workspace" | "clean-snapshot-staging" | "open-folder" | "git-commit" | "git-push";
   label: string;
   workspaceName?: string;
   rootPath?: string;
@@ -2187,6 +2208,172 @@ async function openDeveloperPath(folderPath: string, label: string): Promise<Dev
   return error
     ? { ok: false, message: `Unable to open ${label}: ${error}`, path: folderPath }
     : { ok: true, message: `Opened ${label}.`, path: folderPath };
+}
+
+
+type DeveloperGitAutomationState = {
+  isRepository: boolean;
+  branch: string;
+  changedFiles: string[];
+  isClean: boolean;
+  remote?: string;
+  upstream?: string;
+  hasSuccessfulBuild: boolean;
+  latestBuildAt?: string;
+  suggestedCommitMessage: string;
+  canCommit: boolean;
+  canPush: boolean;
+  message: string;
+};
+
+function latestSuccessfulBuild(rootPath: string) {
+  return readDeveloperAutomationHistory().find(
+    (record) => record.action === "build" && record.rootPath === rootPath && record.status === "success",
+  );
+}
+
+function suggestedDeveloperCommitMessage() {
+  const installRecord = readDeveloperAutomationHistory().find(
+    (record) => record.action === "install-package" && record.status === "success" && record.packageId,
+  );
+  if (!installRecord?.packageId) return "Update active workspace";
+  return installRecord.packageId
+    .replace(/^workflowstudio-v[\d.-]+-?/i, "")
+    .split("-")
+    .filter(Boolean)
+    .map((word, index) => index === 0 ? word.charAt(0).toUpperCase() + word.slice(1) : word)
+    .join(" ");
+}
+
+function getDeveloperGitAutomationState(rootPathInput?: string): DeveloperGitAutomationState {
+  const rootPath = normalizeRoot(rootPathInput);
+  const status = getGitStatus(rootPath);
+  if (!status.isRepository) {
+    return {
+      isRepository: false,
+      branch: status.branch,
+      changedFiles: [],
+      isClean: true,
+      hasSuccessfulBuild: false,
+      suggestedCommitMessage: suggestedDeveloperCommitMessage(),
+      canCommit: false,
+      canPush: false,
+      message: "The active workspace is not a Git repository.",
+    };
+  }
+
+  let remote: string | undefined;
+  let upstream: string | undefined;
+  try {
+    remote = runGit(rootPath, "remote get-url origin") || undefined;
+  } catch {
+    remote = undefined;
+  }
+  try {
+    upstream = runGit(rootPath, "rev-parse --abbrev-ref --symbolic-full-name @{u}") || undefined;
+  } catch {
+    upstream = undefined;
+  }
+
+  const successfulBuild = latestSuccessfulBuild(rootPath);
+  return {
+    isRepository: true,
+    branch: status.branch,
+    changedFiles: status.changedFiles,
+    isClean: status.status === "clean",
+    remote,
+    upstream,
+    hasSuccessfulBuild: Boolean(successfulBuild),
+    latestBuildAt: successfulBuild?.finishedAt,
+    suggestedCommitMessage: suggestedDeveloperCommitMessage(),
+    canCommit: status.status === "dirty" && Boolean(successfulBuild),
+    canPush: Boolean(remote),
+    message:
+      status.status === "clean"
+        ? "The working tree is clean."
+        : successfulBuild
+          ? "Changes are ready for a reviewed commit."
+          : "Run a successful build before committing.",
+  };
+}
+
+function commitDeveloperChanges(rootPathInput: string | undefined, message: string): DeveloperWorkflowResult {
+  const rootPath = normalizeRoot(rootPathInput);
+  const startedAt = new Date().toISOString();
+  const state = getDeveloperGitAutomationState(rootPath);
+
+  if (!state.isRepository) {
+    const result = { ok: false, message: "The active workspace is not a Git repository." };
+    recordDeveloperResult("git-commit", "Commit changes", result, rootPath, startedAt);
+    return result;
+  }
+  if (state.isClean) {
+    const result = { ok: false, message: "There are no changes to commit." };
+    recordDeveloperResult("git-commit", "Commit changes", result, rootPath, startedAt);
+    return result;
+  }
+  if (!state.hasSuccessfulBuild) {
+    const result = { ok: false, message: "A successful Developer Tools build is required before committing." };
+    recordDeveloperResult("git-commit", "Commit changes", result, rootPath, startedAt);
+    return result;
+  }
+  const trimmedMessage = message.trim();
+  if (!trimmedMessage) {
+    const result = { ok: false, message: "Enter a commit message before committing." };
+    recordDeveloperResult("git-commit", "Commit changes", result, rootPath, startedAt);
+    return result;
+  }
+
+  try {
+    execFileSync("git", ["add", "-A"], { cwd: rootPath, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
+    const output = execFileSync("git", ["commit", "-m", trimmedMessage], {
+      cwd: rootPath,
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "pipe"],
+    }).trim();
+    const result = { ok: true, message: `Committed changes on ${state.branch}.`, details: output ? [output] : undefined };
+    recordDeveloperResult("git-commit", "Commit changes", result, rootPath, startedAt);
+    return result;
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : "Git commit failed.";
+    const result = { ok: false, message: "Git commit failed.", details: [detail] };
+    recordDeveloperResult("git-commit", "Commit changes", result, rootPath, startedAt);
+    return result;
+  }
+}
+
+function pushDeveloperBranch(rootPathInput?: string): DeveloperWorkflowResult {
+  const rootPath = normalizeRoot(rootPathInput);
+  const startedAt = new Date().toISOString();
+  const state = getDeveloperGitAutomationState(rootPath);
+
+  if (!state.isRepository) {
+    const result = { ok: false, message: "The active workspace is not a Git repository." };
+    recordDeveloperResult("git-push", "Push branch", result, rootPath, startedAt);
+    return result;
+  }
+  if (!state.remote) {
+    const result = { ok: false, message: "No origin remote is configured for this repository." };
+    recordDeveloperResult("git-push", "Push branch", result, rootPath, startedAt);
+    return result;
+  }
+
+  try {
+    const args = state.upstream ? ["push"] : ["push", "-u", "origin", state.branch];
+    const output = execFileSync("git", args, {
+      cwd: rootPath,
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "pipe"],
+    }).trim();
+    const result = { ok: true, message: `Pushed ${state.branch} to origin.`, details: output ? [output] : undefined };
+    recordDeveloperResult("git-push", "Push branch", result, rootPath, startedAt);
+    return result;
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : "Git push failed.";
+    const result = { ok: false, message: "Git push failed.", details: [detail] };
+    recordDeveloperResult("git-push", "Push branch", result, rootPath, startedAt);
+    return result;
+  }
 }
 
 function validateDeveloperWorkspace(rootPathInput?: string): DeveloperValidationReport {
@@ -2276,6 +2463,9 @@ ipcMain.handle("developer:validateWorkspace", (_event, rootPath?: string) => {
   );
   return report;
 });
+ipcMain.handle("developer:getGitAutomationState", (_event, rootPath?: string) => getDeveloperGitAutomationState(rootPath));
+ipcMain.handle("developer:commitChanges", (_event, rootPath: string | undefined, message: string) => commitDeveloperChanges(rootPath, message));
+ipcMain.handle("developer:pushBranch", (_event, rootPath?: string) => pushDeveloperBranch(rootPath));
 ipcMain.handle("developer:listAutomationHistory", () => readDeveloperAutomationHistory());
 ipcMain.handle("developer:clearAutomationHistory", () => {
   writeDeveloperAutomationHistory([]);

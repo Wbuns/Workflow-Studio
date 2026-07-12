@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import type { NavigationItem } from "../../types/navigation";
 import type { WorkspaceRecord } from "../../types/workspaceRegistry";
-import type { DeveloperAutomationRecord, DeveloperValidationReport, DeveloperWorkflowResult } from "../../types/developerWorkflow";
+import type { DeveloperAutomationRecord, DeveloperGitAutomationState, DeveloperValidationReport, DeveloperWorkflowResult } from "../../types/developerWorkflow";
 import { DeveloperWorkflowService } from "../../services/DeveloperWorkflowService";
+import { createAISnapshot, openAISnapshotFolder } from "../ai-development/AIDevelopmentService";
 import "./DeveloperToolsPage.css";
 
 type DeveloperToolsPageProps = {
@@ -19,6 +20,8 @@ export function DeveloperToolsPage({
   const [buildOutput, setBuildOutput] = useState<string[]>([]);
   const [validationReport, setValidationReport] = useState<DeveloperValidationReport>();
   const [automationHistory, setAutomationHistory] = useState<DeveloperAutomationRecord[]>([]);
+  const [gitAutomation, setGitAutomation] = useState<DeveloperGitAutomationState>();
+  const [commitMessage, setCommitMessage] = useState("");
 
   useEffect(() => DeveloperWorkflowService.subscribeToBuildOutput((line) => {
     setBuildOutput((current) => [...current.slice(-299), line]);
@@ -36,6 +39,25 @@ export function DeveloperToolsPage({
     void refreshAutomationHistory();
   }, []);
 
+  useEffect(() => {
+    void refreshGitAutomation();
+  }, [activeWorkspace?.rootPath]);
+
+
+  async function refreshGitAutomation() {
+    if (!rootPath) {
+      setGitAutomation(undefined);
+      return;
+    }
+    try {
+      const state = await DeveloperWorkflowService.getGitAutomationState(rootPath);
+      setGitAutomation(state);
+      setCommitMessage((current) => current || state.suggestedCommitMessage);
+    } catch (error) {
+      console.warn("Unable to load Git automation state.", error);
+    }
+  }
+
   async function runAction(
     actionId: string,
     action: () => Promise<DeveloperWorkflowResult>,
@@ -44,6 +66,7 @@ export function DeveloperToolsPage({
     try {
       setResult(await action());
       await refreshAutomationHistory();
+      await refreshGitAutomation();
     } catch (error) {
       setResult({
         ok: false,
@@ -104,6 +127,7 @@ export function DeveloperToolsPage({
                 setResult({ ok: false, message: error instanceof Error ? error.message : "Build failed to start." });
               } finally {
                 await refreshAutomationHistory();
+      await refreshGitAutomation();
                 setBusyAction(undefined);
               }
             }} disabled={!rootPath || Boolean(busyAction)}>
@@ -112,6 +136,75 @@ export function DeveloperToolsPage({
             <button type="button" onClick={() => setBuildOutput([])} disabled={!buildOutput.length}>Clear Output</button>
           </div>
         </article>
+
+
+        <article className="detail-panel developer-tool-card">
+          <h3>Git Automation</h3>
+          <p>{gitAutomation?.message ?? "Load the active repository status before committing or pushing."}</p>
+          <dl className="developer-git-summary">
+            <div><dt>Branch</dt><dd>{gitAutomation?.branch ?? "Unknown"}</dd></div>
+            <div><dt>Changes</dt><dd>{gitAutomation?.changedFiles.length ?? 0}</dd></div>
+            <div><dt>Build Gate</dt><dd>{gitAutomation?.hasSuccessfulBuild ? "Passed" : "Build required"}</dd></div>
+            <div><dt>Remote</dt><dd>{gitAutomation?.remote ? "origin configured" : "Not configured"}</dd></div>
+          </dl>
+          <label className="developer-commit-field">
+            <span>Commit message</span>
+            <input
+              type="text"
+              value={commitMessage}
+              onChange={(event) => setCommitMessage(event.target.value)}
+              placeholder="Describe the completed milestone"
+            />
+          </label>
+          <div className="developer-tool-actions">
+            <button type="button" onClick={() => void refreshGitAutomation()} disabled={!rootPath || Boolean(busyAction)}>
+              Refresh Git Status
+            </button>
+            <button
+              type="button"
+              onClick={() => runAction("git-commit", () => DeveloperWorkflowService.commitChanges(rootPath, commitMessage))}
+              disabled={!gitAutomation?.canCommit || Boolean(busyAction)}
+            >
+              Commit Changes
+            </button>
+            <button
+              type="button"
+              onClick={() => runAction("git-push", () => DeveloperWorkflowService.pushBranch(rootPath))}
+              disabled={!gitAutomation?.canPush || Boolean(busyAction)}
+            >
+              Push Branch
+            </button>
+          </div>
+        </article>
+
+        <article className="detail-panel developer-tool-card">
+          <h3>AI Snapshots</h3>
+          <p>Create or open snapshots for the active workspace without leaving Developer Tools.</p>
+          <div className="developer-tool-actions">
+            <button
+              type="button"
+              onClick={() => runAction("create-snapshot", async () => {
+                const snapshotResult = await createAISnapshot(rootPath);
+                return {
+                  ok: snapshotResult.ok,
+                  message: snapshotResult.message,
+                  path: snapshotResult.snapshot?.filePath,
+                };
+              })}
+              disabled={!rootPath || Boolean(busyAction)}
+            >
+              Create Snapshot
+            </button>
+            <button
+              type="button"
+              onClick={() => runAction("open-snapshots", () => openAISnapshotFolder(rootPath))}
+              disabled={!rootPath || Boolean(busyAction)}
+            >
+              Open Snapshot Folder
+            </button>
+          </div>
+        </article>
+
         <article className="detail-panel developer-tool-card">
           <h3>Maintenance</h3>
           <p>Clear abandoned temporary snapshot data and run a workspace preflight check.</p>
@@ -129,6 +222,7 @@ export function DeveloperToolsPage({
                 setResult({ ok: false, message: error instanceof Error ? error.message : "Validation failed." });
               } finally {
                 await refreshAutomationHistory();
+      await refreshGitAutomation();
                 setBusyAction(undefined);
               }
             }} disabled={!rootPath || Boolean(busyAction)}>

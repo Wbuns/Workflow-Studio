@@ -44,7 +44,9 @@ export type DeveloperAutomationAction =
   | "build"
   | "validate-workspace"
   | "clean-snapshot-staging"
-  | "open-folder";
+  | "open-folder"
+  | "git-commit"
+  | "git-push";
 
 export type DeveloperAutomationRecord = {
   id: string;
@@ -60,4 +62,20 @@ export type DeveloperAutomationRecord = {
   packageId?: string;
   exitCode?: number;
   details?: string[];
+};
+
+
+export type DeveloperGitAutomationState = {
+  isRepository: boolean;
+  branch: string;
+  changedFiles: string[];
+  isClean: boolean;
+  remote?: string;
+  upstream?: string;
+  hasSuccessfulBuild: boolean;
+  latestBuildAt?: string;
+  suggestedCommitMessage: string;
+  canCommit: boolean;
+  canPush: boolean;
+  message: string;
 };

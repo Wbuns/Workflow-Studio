@@ -1,3 +1,23 @@
+# v2.1.7 — Git Automation Foundation
+
+## Added
+
+- Active-workspace Git automation status in Developer Tools.
+- Suggested commit message from the latest installed package.
+- Guarded Commit Changes action.
+- Push Branch action with automatic upstream setup when origin exists.
+- Successful-build requirement before committing.
+- Commit and push operation records in Automation History.
+- Build completion updates for Automation History.
+
+# v2.1.6c — Developer Tools Snapshot Shortcuts
+
+## Added
+
+- Create Snapshot action in Developer Tools.
+- Open Snapshot Folder action in Developer Tools.
+- Snapshot results shown in the existing Latest Result panel.
+
 # v2.1.6 — Automation History and Operation Log
 
 ## Added

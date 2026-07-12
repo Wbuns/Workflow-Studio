@@ -1,6 +1,7 @@
 import type {
   DeveloperAutomationRecord,
   DeveloperBuildSession,
+  DeveloperGitAutomationState,
   DeveloperPackageInstallResult,
   DeveloperValidationReport,
   DeveloperWorkflowResult,
@@ -99,5 +100,17 @@ export const DeveloperWorkflowService = {
 
   clearAutomationHistory(): Promise<DeveloperWorkflowResult> {
     return requireDeveloperBridge().clearAutomationHistory();
+  },
+
+  getGitAutomationState(rootPath?: string): Promise<DeveloperGitAutomationState> {
+    return requireDeveloperBridge().getGitAutomationState(rootPath);
+  },
+
+  commitChanges(rootPath: string | undefined, message: string): Promise<DeveloperWorkflowResult> {
+    return requireDeveloperBridge().commitChanges(rootPath, message);
+  },
+
+  pushBranch(rootPath?: string): Promise<DeveloperWorkflowResult> {
+    return requireDeveloperBridge().pushBranch(rootPath);
   },
 };

@@ -76,3 +76,43 @@
   margin: 0;
   color: var(--text-muted);
 }
+
+.developer-git-summary {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin: 0;
+}
+
+.developer-git-summary div {
+  padding: 10px 12px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  background: var(--surface-subtle);
+}
+
+.developer-git-summary dt {
+  color: var(--text-muted);
+  font-size: 0.78rem;
+}
+
+.developer-git-summary dd {
+  margin: 3px 0 0;
+  font-weight: 600;
+}
+
+.developer-commit-field {
+  display: grid;
+  gap: 6px;
+}
+
+.developer-commit-field span {
+  color: var(--text-muted);
+  font-size: 0.82rem;
+}
+
+.developer-commit-field input {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
