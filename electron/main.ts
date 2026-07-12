@@ -137,12 +137,20 @@ function runWorkspaceCommand(
     startedAt: new Date().toISOString(),
     permission: command.permission,
   };
-  const child = spawn(executable, tokens.slice(1), {
-    cwd: resolveCommandWorkingDirectory(rootPath, command),
-    env: { ...process.env, FORCE_COLOR: "0", NO_COLOR: "1" },
-    shell: false,
-    windowsHide: true,
-  });
+  const commandArguments = tokens.slice(1);
+  const child = process.platform === "win32"
+    ? spawn(process.env.ComSpec ?? "cmd.exe", ["/d", "/s", "/c", executable, ...commandArguments], {
+        cwd: resolveCommandWorkingDirectory(rootPath, command),
+        env: { ...process.env, FORCE_COLOR: "0", NO_COLOR: "1" },
+        shell: false,
+        windowsHide: true,
+      })
+    : spawn(executable, commandArguments, {
+        cwd: resolveCommandWorkingDirectory(rootPath, command),
+        env: { ...process.env, FORCE_COLOR: "0", NO_COLOR: "1" },
+        shell: false,
+        windowsHide: true,
+      });
 
   runningWorkspaceCommands.set(executionId, { child, execution });
   emitCommandOutput(target, executionId, "system", `> ${command.command}\n`);
@@ -2099,6 +2107,80 @@ type DeveloperValidationReport = {
   generatedAt: string;
 };
 
+type DeveloperAutomationRecord = {
+  id: string;
+  action: "install-package" | "build" | "validate-workspace" | "clean-snapshot-staging" | "open-folder";
+  label: string;
+  workspaceName?: string;
+  rootPath?: string;
+  status: "success" | "failed" | "started";
+  startedAt: string;
+  finishedAt?: string;
+  durationMs?: number;
+  message: string;
+  packageId?: string;
+  exitCode?: number;
+  details?: string[];
+};
+
+function developerAutomationHistoryPath() {
+  return path.join(app.getPath("userData"), "developer-automation-history.json");
+}
+
+function readDeveloperAutomationHistory(): DeveloperAutomationRecord[] {
+  const historyPath = developerAutomationHistoryPath();
+  if (!fs.existsSync(historyPath)) return [];
+
+  try {
+    const parsed = JSON.parse(fs.readFileSync(historyPath, "utf8")) as unknown;
+    return Array.isArray(parsed) ? parsed.slice(0, 250) as DeveloperAutomationRecord[] : [];
+  } catch (error) {
+    console.warn("Unable to read developer automation history.", error);
+    return [];
+  }
+}
+
+function writeDeveloperAutomationHistory(records: DeveloperAutomationRecord[]) {
+  const historyPath = developerAutomationHistoryPath();
+  fs.mkdirSync(path.dirname(historyPath), { recursive: true });
+  fs.writeFileSync(historyPath, JSON.stringify(records.slice(0, 250), null, 2) + "\n", "utf8");
+}
+
+function appendDeveloperAutomationRecord(record: DeveloperAutomationRecord) {
+  const records = readDeveloperAutomationHistory();
+  const normalized: DeveloperAutomationRecord = {
+    ...record,
+    id: record.id || `automation-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    startedAt: record.startedAt || new Date().toISOString(),
+  };
+  writeDeveloperAutomationHistory([normalized, ...records.filter((entry) => entry.id !== normalized.id)]);
+  return normalized;
+}
+
+function recordDeveloperResult(
+  action: DeveloperAutomationRecord["action"],
+  label: string,
+  result: DeveloperWorkflowResult,
+  rootPath?: string,
+  startedAt = new Date().toISOString(),
+  packageId?: string,
+) {
+  const finishedAt = new Date().toISOString();
+  return appendDeveloperAutomationRecord({
+    id: `automation-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    action,
+    label,
+    rootPath,
+    status: result.ok ? "success" : "failed",
+    startedAt,
+    finishedAt,
+    durationMs: Math.max(0, Date.parse(finishedAt) - Date.parse(startedAt)),
+    message: result.message,
+    packageId,
+    details: result.details,
+  });
+}
+
 async function openDeveloperPath(folderPath: string, label: string): Promise<DeveloperWorkflowResult> {
   fs.mkdirSync(folderPath, { recursive: true });
   const error = await shell.openPath(folderPath);
@@ -2140,17 +2222,66 @@ function cleanDeveloperSnapshotStaging(): DeveloperWorkflowResult {
   }
 }
 
-ipcMain.handle("developer:installLatestPackage", (_event, rootPath?: string) => {
+ipcMain.handle("developer:installLatestPackage", async (_event, rootPath?: string) => {
+  const startedAt = new Date().toISOString();
   const packagePath = newestDownloadedWorkflowPackage();
-  if (!packagePath) return { ok: false, message: "No workflowstudio-*.zip package was found in Downloads." };
-  return installDeveloperPackage(rootPath, packagePath);
+  if (!packagePath) {
+    const result = { ok: false, message: "No workflowstudio-*.zip package was found in Downloads." };
+    recordDeveloperResult("install-package", "Install latest downloaded package", result, rootPath, startedAt);
+    return result;
+  }
+  const result = await installDeveloperPackage(rootPath, packagePath);
+  recordDeveloperResult("install-package", "Install latest downloaded package", result, rootPath, startedAt, "packageId" in result ? result.packageId : undefined);
+  return result;
 });
-ipcMain.handle("developer:installPackage", (_event, rootPath?: string) => chooseAndInstallDeveloperPackage(rootPath));
-ipcMain.handle("developer:openDownloads", () => openDeveloperPath(app.getPath("downloads"), "Downloads"));
-ipcMain.handle("developer:openPackageFolder", (_event, rootPath?: string) => openDeveloperPath(path.join(normalizeRoot(rootPath), "_packages"), "package folder"));
-ipcMain.handle("developer:openBackupFolder", (_event, rootPath?: string) => openDeveloperPath(path.join(normalizeRoot(rootPath), "_backup"), "backup folder"));
-ipcMain.handle("developer:cleanSnapshotStaging", () => cleanDeveloperSnapshotStaging());
-ipcMain.handle("developer:validateWorkspace", (_event, rootPath?: string) => validateDeveloperWorkspace(rootPath));
+ipcMain.handle("developer:installPackage", async (_event, rootPath?: string) => {
+  const startedAt = new Date().toISOString();
+  const result = await chooseAndInstallDeveloperPackage(rootPath);
+  recordDeveloperResult("install-package", "Install selected package", result, rootPath, startedAt, "packageId" in result ? result.packageId : undefined);
+  return result;
+});
+ipcMain.handle("developer:openDownloads", async () => {
+  const startedAt = new Date().toISOString();
+  const result = await openDeveloperPath(app.getPath("downloads"), "Downloads");
+  recordDeveloperResult("open-folder", "Open Downloads", result, undefined, startedAt);
+  return result;
+});
+ipcMain.handle("developer:openPackageFolder", async (_event, rootPath?: string) => {
+  const startedAt = new Date().toISOString();
+  const result = await openDeveloperPath(path.join(normalizeRoot(rootPath), "_packages"), "package folder");
+  recordDeveloperResult("open-folder", "Open package folder", result, rootPath, startedAt);
+  return result;
+});
+ipcMain.handle("developer:openBackupFolder", async (_event, rootPath?: string) => {
+  const startedAt = new Date().toISOString();
+  const result = await openDeveloperPath(path.join(normalizeRoot(rootPath), "_backup"), "backup folder");
+  recordDeveloperResult("open-folder", "Open backup folder", result, rootPath, startedAt);
+  return result;
+});
+ipcMain.handle("developer:cleanSnapshotStaging", () => {
+  const startedAt = new Date().toISOString();
+  const result = cleanDeveloperSnapshotStaging();
+  recordDeveloperResult("clean-snapshot-staging", "Clean snapshot staging", result, undefined, startedAt);
+  return result;
+});
+ipcMain.handle("developer:validateWorkspace", (_event, rootPath?: string) => {
+  const startedAt = new Date().toISOString();
+  const report = validateDeveloperWorkspace(rootPath);
+  recordDeveloperResult(
+    "validate-workspace",
+    "Validate workspace",
+    { ok: report.ok, message: `Workspace validation score: ${report.score}%`, details: report.checks.map((check) => `${check.label}: ${check.detail}`) },
+    rootPath,
+    startedAt,
+  );
+  return report;
+});
+ipcMain.handle("developer:listAutomationHistory", () => readDeveloperAutomationHistory());
+ipcMain.handle("developer:clearAutomationHistory", () => {
+  writeDeveloperAutomationHistory([]);
+  return { ok: true, message: "Automation history was cleared.", path: developerAutomationHistoryPath() };
+});
+ipcMain.handle("developer:recordAutomationOperation", (_event, record: DeveloperAutomationRecord) => appendDeveloperAutomationRecord(record));
 ipcMain.handle("workspace:runCommand", (event, rootPath: string | undefined, commandId: string, approvedPermission?: "interactive" | "device-changing") =>
   runWorkspaceCommand(event.sender, rootPath, commandId, approvedPermission),
 );

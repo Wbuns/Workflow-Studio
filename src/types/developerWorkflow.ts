@@ -38,3 +38,26 @@ export type DeveloperBuildSession = {
   exitCode?: number;
   output: string[];
 };
+
+export type DeveloperAutomationAction =
+  | "install-package"
+  | "build"
+  | "validate-workspace"
+  | "clean-snapshot-staging"
+  | "open-folder";
+
+export type DeveloperAutomationRecord = {
+  id: string;
+  action: DeveloperAutomationAction;
+  label: string;
+  workspaceName?: string;
+  rootPath?: string;
+  status: "success" | "failed" | "started";
+  startedAt: string;
+  finishedAt?: string;
+  durationMs?: number;
+  message: string;
+  packageId?: string;
+  exitCode?: number;
+  details?: string[];
+};

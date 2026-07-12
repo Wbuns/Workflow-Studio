@@ -3,7 +3,7 @@ import type {
   AiContinuationPrompt,
   WorkspaceProjectMetadata,
 } from "./workspace";
-import type { DeveloperPackageInstallResult, DeveloperValidationReport, DeveloperWorkflowResult } from "./developerWorkflow";
+import type { DeveloperAutomationRecord, DeveloperPackageInstallResult, DeveloperValidationReport, DeveloperWorkflowResult } from "./developerWorkflow";
 import type { WorkspaceAnalysis, WorkspaceCommandExecution, WorkspaceCommandOutput } from "./workspaceAnalysis";
 
 export type GitFileStatus = {
@@ -43,6 +43,9 @@ export type WorkflowStudioBridge = {
     installLatestPackage: (rootPath?: string) => Promise<DeveloperPackageInstallResult>;
     installPackage: (rootPath?: string) => Promise<DeveloperPackageInstallResult>;
     validateWorkspace: (rootPath?: string) => Promise<DeveloperValidationReport>;
+    listAutomationHistory: () => Promise<DeveloperAutomationRecord[]>;
+    clearAutomationHistory: () => Promise<DeveloperWorkflowResult>;
+    recordAutomationOperation: (record: DeveloperAutomationRecord) => Promise<DeveloperAutomationRecord>;
   };
   git?: {
     getStatus: () => Promise<GitRepositoryStatus>;

@@ -1,4 +1,5 @@
 import type {
+  DeveloperAutomationRecord,
   DeveloperBuildSession,
   DeveloperPackageInstallResult,
   DeveloperValidationReport,
@@ -30,7 +31,7 @@ export const DeveloperWorkflowService = {
     return requireDeveloperBridge().cleanSnapshotStaging();
   },
 
-  async runBuild(rootPath?: string): Promise<DeveloperBuildSession> {
+  async runBuild(rootPath?: string, workspaceName?: string): Promise<DeveloperBuildSession> {
     const bridge = window.workflowStudio?.workspace;
     if (!bridge?.scan || !bridge.runCommand) {
       throw new Error("Workspace build bridge is unavailable.");
@@ -39,6 +40,16 @@ export const DeveloperWorkflowService = {
     const buildCommand = analysis.workspaceCommands.find((command) => command.category === "build" && command.permission === "safe");
     if (!buildCommand) throw new Error("A safe build command was not detected.");
     const execution = await bridge.runCommand(rootPath, buildCommand.id);
+    await requireDeveloperBridge().recordAutomationOperation({
+      id: `automation-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      action: "build",
+      label: buildCommand.label,
+      workspaceName,
+      rootPath,
+      status: "started",
+      startedAt: execution.startedAt,
+      message: `Build started: ${execution.command}`,
+    });
     return { ...execution, output: [] };
   },
 
@@ -80,5 +91,13 @@ export const DeveloperWorkflowService = {
 
   validateWorkspace(rootPath?: string): Promise<DeveloperValidationReport> {
     return requireDeveloperBridge().validateWorkspace(rootPath);
+  },
+
+  listAutomationHistory(): Promise<DeveloperAutomationRecord[]> {
+    return requireDeveloperBridge().listAutomationHistory();
+  },
+
+  clearAutomationHistory(): Promise<DeveloperWorkflowResult> {
+    return requireDeveloperBridge().clearAutomationHistory();
   },
 };

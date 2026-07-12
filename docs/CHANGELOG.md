@@ -1,3 +1,13 @@
+# v2.1.6 — Automation History and Operation Log
+
+## Added
+
+- Persistent developer automation history stored independently from project metadata.
+- Operation records for package installation, builds, workspace validation, maintenance, and folder actions.
+- Automation History panel in Developer Tools.
+- Refresh and clear-history controls.
+- Workspace, timing, result, package, and diagnostic metadata for recorded operations.
+
 # v2.1.5.4 — Workspace Preflight Validation
 
 ## Added

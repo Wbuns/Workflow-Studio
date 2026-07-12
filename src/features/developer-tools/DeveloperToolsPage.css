@@ -19,3 +19,60 @@
 .developer-validation-check.warning > span { background: rgba(245,158,11,.18); color: #fcd34d; }
 .developer-validation-check.failed > span { background: rgba(239,68,68,.18); color: #fca5a5; }
 .developer-validation-check p { margin-top: 3px; }
+
+.developer-automation-history {
+  display: grid;
+  gap: 16px;
+}
+
+.developer-automation-list {
+  display: grid;
+  gap: 10px;
+}
+
+.developer-automation-record {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+  padding: 12px 14px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  background: var(--surface-subtle);
+}
+
+.developer-automation-record p,
+.developer-automation-record small {
+  margin: 4px 0 0;
+}
+
+.developer-automation-record small {
+  color: var(--text-muted);
+}
+
+.developer-automation-status {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  font-weight: 700;
+  background: var(--surface-raised);
+}
+
+.developer-automation-record.success .developer-automation-status {
+  color: var(--success);
+}
+
+.developer-automation-record.failed .developer-automation-status {
+  color: var(--danger);
+}
+
+.developer-automation-record.started .developer-automation-status {
+  color: var(--warning);
+}
+
+.developer-empty-state {
+  margin: 0;
+  color: var(--text-muted);
+}

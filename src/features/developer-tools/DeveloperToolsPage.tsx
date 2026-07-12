@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import type { NavigationItem } from "../../types/navigation";
 import type { WorkspaceRecord } from "../../types/workspaceRegistry";
-import type { DeveloperValidationReport, DeveloperWorkflowResult } from "../../types/developerWorkflow";
+import type { DeveloperAutomationRecord, DeveloperValidationReport, DeveloperWorkflowResult } from "../../types/developerWorkflow";
 import { DeveloperWorkflowService } from "../../services/DeveloperWorkflowService";
 import "./DeveloperToolsPage.css";
 
@@ -18,10 +18,23 @@ export function DeveloperToolsPage({
   const [busyAction, setBusyAction] = useState<string>();
   const [buildOutput, setBuildOutput] = useState<string[]>([]);
   const [validationReport, setValidationReport] = useState<DeveloperValidationReport>();
+  const [automationHistory, setAutomationHistory] = useState<DeveloperAutomationRecord[]>([]);
 
   useEffect(() => DeveloperWorkflowService.subscribeToBuildOutput((line) => {
     setBuildOutput((current) => [...current.slice(-299), line]);
   }), []);
+
+  async function refreshAutomationHistory() {
+    try {
+      setAutomationHistory(await DeveloperWorkflowService.listAutomationHistory());
+    } catch (error) {
+      console.warn("Unable to load automation history.", error);
+    }
+  }
+
+  useEffect(() => {
+    void refreshAutomationHistory();
+  }, []);
 
   async function runAction(
     actionId: string,
@@ -30,6 +43,7 @@ export function DeveloperToolsPage({
     setBusyAction(actionId);
     try {
       setResult(await action());
+      await refreshAutomationHistory();
     } catch (error) {
       setResult({
         ok: false,
@@ -84,11 +98,12 @@ export function DeveloperToolsPage({
               setBusyAction("build");
               setBuildOutput([]);
               try {
-                const execution = await DeveloperWorkflowService.runBuild(rootPath);
+                const execution = await DeveloperWorkflowService.runBuild(rootPath, activeWorkspace?.name);
                 setResult({ ok: execution.status !== "failed", message: `Build started: ${execution.command}` });
               } catch (error) {
                 setResult({ ok: false, message: error instanceof Error ? error.message : "Build failed to start." });
               } finally {
+                await refreshAutomationHistory();
                 setBusyAction(undefined);
               }
             }} disabled={!rootPath || Boolean(busyAction)}>
@@ -113,6 +128,7 @@ export function DeveloperToolsPage({
               } catch (error) {
                 setResult({ ok: false, message: error instanceof Error ? error.message : "Validation failed." });
               } finally {
+                await refreshAutomationHistory();
                 setBusyAction(undefined);
               }
             }} disabled={!rootPath || Boolean(busyAction)}>
@@ -138,6 +154,45 @@ export function DeveloperToolsPage({
           </div>
         </section>
       ) : null}
+
+
+      <section className="detail-panel developer-automation-history">
+        <div className="developer-console-header">
+          <div>
+            <h3>Automation History</h3>
+            <p>Recent developer operations across registered workspaces.</p>
+          </div>
+          <div className="developer-tool-actions">
+            <button type="button" onClick={() => void refreshAutomationHistory()} disabled={Boolean(busyAction)}>
+              Refresh
+            </button>
+            <button type="button" onClick={() => runAction("clear-history", async () => {
+              const cleared = await DeveloperWorkflowService.clearAutomationHistory();
+              setAutomationHistory([]);
+              return cleared;
+            })} disabled={!automationHistory.length || Boolean(busyAction)}>
+              Clear History
+            </button>
+          </div>
+        </div>
+        <div className="developer-automation-list">
+          {automationHistory.length ? automationHistory.map((record) => (
+            <article className={`developer-automation-record ${record.status}`} key={record.id}>
+              <span className="developer-automation-status">
+                {record.status === "success" ? "✓" : record.status === "failed" ? "×" : "…"}
+              </span>
+              <div>
+                <strong>{record.label}</strong>
+                <p>{record.message}</p>
+                <small>
+                  {record.workspaceName ?? record.rootPath ?? "Workflow Studio"} · {new Date(record.startedAt).toLocaleString()}
+                  {typeof record.durationMs === "number" ? ` · ${record.durationMs} ms` : ""}
+                </small>
+              </div>
+            </article>
+          )) : <p className="developer-empty-state">No automated developer operations have been recorded yet.</p>}
+        </div>
+      </section>
 
       <section className="detail-panel developer-build-console">
         <div className="developer-console-header"><h3>Build Console</h3><span>{buildOutput.length} lines</span></div>
