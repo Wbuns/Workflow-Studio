@@ -1,30 +1,23 @@
 # Workflow Studio
 
-Workflow Studio is a desktop control center for package-based, AI-assisted software and embedded-device development.
+A desktop environment for package-based, AI-assisted software development.
 
 ## Current release
 
-**v1.5.0 — Daily Driver**
+**v2.0.6 Release Candidate**
 
-The current application includes:
+The single-project daily-driver workflow now includes Workspace Intelligence, AI development sessions, package generation and intake, validated install/build pipelines, session history, Timeline, global search, command palette, embedded-project support, and persistent workspace preferences.
 
-- Project and workspace management
-- Workspace intelligence and readiness analysis
-- AI Workspace, continuation prompts, and developer requests
-- AI snapshots and installable package generation
-- Secure workspace command execution
-- Embedded and PlatformIO project support
-- Package Explorer
-- Unified project timeline
-- Smart recommendations
-- Git and documentation assistance
+## Next release
 
-## Standard milestone workflow
+**v2.1 — Multi-Project Workspace**
 
-```text
-Plan → Package → Install → Build → Test → Commit → Snapshot
-```
+The next architecture phase introduces a Workspace Hub, project switching, cross-project Timeline and recommendations, favorites, and recent-project continuity.
 
-Never commit a broken build. Prefer small, reversible milestones and complete replacement files when practical.
+## Core workflow
 
-See `docs/Daily Driver Release.md` for the v1.5.0 release summary.
+1. Analyze a managed project.
+2. Build a Development Session.
+3. Generate or import a reviewed package.
+4. Validate, install, and build.
+5. Review Git changes and commit a stable milestone.

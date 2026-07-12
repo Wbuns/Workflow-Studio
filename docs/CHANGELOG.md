@@ -333,3 +333,10 @@ Completed
 - Added shared local workspace preferences.
 - Remembered active page, sidebar state, and Timeline filter.
 - Refined Timeline grouping and interaction styling.
+
+
+# v2.0.6 — Release Candidate
+
+- Completed the single-project daily-driver polish series.
+- Synchronized package and project release metadata.
+- Updated README and roadmap for v2.1 Multi-Project Workspace.

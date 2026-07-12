@@ -1,68 +1,36 @@
 # Workflow Studio Roadmap
 
-## v1.0 — Core Application
+## Completed
 
-Completed:
+### v2.0 — Single-Project Daily Driver
 
-- Electron desktop application
-- Feature-based React architecture
-- Projects, Packages, Documentation, AI, and Git foundations
-- Package installation, validation, and backup workflow
-- Managed workspace metadata
+- Workspace and Project Intelligence
+- Embedded project awareness
+- AI Development Orchestrator
+- Package Builder, intake, validation, install, and build pipeline
+- Development Session history
+- Dashboard, sidebar, command palette, search, Timeline, and preference polish
 
-## v1.2 — Workspace Intelligence
+## Current release
 
-Completed:
+### v2.0.6 — Release Candidate
 
-- Real workspace integration
-- Workspace scanning and health analysis
-- Multi-workspace registry
-- AI context engine
-- Nested application detection
+Stabilize and document the complete single-project daily-driver workflow.
 
-## v1.3 — Embedded Device Foundation
+## Next
 
-Completed:
+### v2.1 — Multi-Project Workspace
 
-- Embedded, ESP32, and PlatformIO classification
-- Embedded metadata and health checks
-- Workspace command profiles
-- Secure native command execution
-- Device-changing permissions and serial-monitor lifecycle
-- Phase-aware workspace intelligence
-- AI Context Engine 2.0
+- Workspace Hub
+- Recent and favorite projects
+- Fast project switching
+- Cross-project Dashboard
+- Cross-project Timeline
+- Resume previous project and session
+- Cross-project recommendations and search foundations
 
-## v1.4 — Daily Driver Experience
+## Later
 
-Completed:
-
-- AI Workspace consolidation and UI polish
-- Navigation-state stability
-- Package Builder repair
-- Grouped navigation
-- Package Explorer
-- Unified Project Timeline
-- Smart Recommendations
-
-## v1.5 — Daily Driver Release
-
-Released:
-
-- Centralized release metadata
-- Application version and release labeling
-- Release documentation and updated project metadata
-- End-to-end daily workflow baseline
-
-## Post-v1.5 Direction
-
-Prioritize real-world use and feedback:
-
-- Bug fixes and workflow friction
-- Device profiles
-- Embedded project bootstrap
-- Firmware milestone and release tracking
-- Package Explorer refinements
-- Timeline and recommendation accuracy
-- Accessibility and responsive UI polish
-
-Major new systems should be driven by repeated needs discovered while building Orivex, Orivex Display, and future projects.
+- AI provider integrations
+- Extension and plugin architecture
+- Marketplace and team workflows

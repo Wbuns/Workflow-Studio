@@ -1,8 +1,8 @@
 {
   "name": "Workflow Studio",
   "description": "A desktop tool for package-based AI-assisted software development.",
-  "version": "2.0.6.5",
-  "currentMilestone": "v2.0.6.5-timeline-preferences",
+  "version": "2.0.6",
+  "currentMilestone": "v2.0.6-release-candidate",
   "projectType": "electron-react-typescript",
   "buildCommand": "npm run build",
   "testCommand": "",
@@ -11,5 +11,5 @@
   "documentationPaths": [
     "docs"
   ],
-  "status": "Timeline and workspace preferences active"
+  "status": "Workflow Studio v2.0.6 release candidate complete"
 }
