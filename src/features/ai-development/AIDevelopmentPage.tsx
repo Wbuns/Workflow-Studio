@@ -88,6 +88,7 @@ export function AIWorkspacePage({ activePage, activeWorkspace }: AIDevelopmentPa
   const [packageResult, setPackageResult] = useState<AIPackageBuilderResult | null>(null);
   const [importedPackage, setImportedPackage] = useState<ImportedPackageResult | null>(null);
   const [pipelineResult, setPipelineResult] = useState<Awaited<ReturnType<typeof runDevelopmentPipeline>> | null>(null);
+  const [pipelineStartedAt, setPipelineStartedAt] = useState<string | null>(null);
   const [sessionHistory, setSessionHistory] = useState<SessionHistoryRecord[]>([]);
   const [isDraggingPackage, setIsDraggingPackage] = useState(false);
   const [packageEligibility, setPackageEligibility] = useState<AIPackageReadiness | null>(null);
@@ -402,6 +403,7 @@ export function AIWorkspacePage({ activePage, activeWorkspace }: AIDevelopmentPa
     }
     setIsWorking(true);
     setPipelineResult(null);
+    setPipelineStartedAt(new Date().toISOString());
     showStatus("Installing package and running the detected build command...");
     try {
       const result = await runDevelopmentPipeline(rootPath, importedPackage.packagePath, importedPackage.suggestedCommitMessage);
@@ -562,18 +564,25 @@ export function AIWorkspacePage({ activePage, activeWorkspace }: AIDevelopmentPa
             <div className="ai-imported-package-heading"><div><span>{packageStateLabel(importedPackage.safetyState)}</span><strong>{importedPackage.packageId ?? "Imported package"}</strong><p>{importedPackage.message}</p></div><code>{importedPackage.packagePath ?? importedPackage.sourcePath}</code></div>
             <div className="ai-imported-package-summary"><div><span>Target</span><strong>{importedPackage.targetProject ?? "Not specified"}</strong></div><div><span>Files</span><strong>{importedPackage.files.length}</strong></div><div><span>Generated</span><strong>{importedPackage.generatedAt ? new Date(importedPackage.generatedAt).toLocaleString() : "Not recorded"}</strong></div><div><span>Status</span><strong>{packageStateLabel(importedPackage.safetyState)}</strong></div></div>
             {importedPackage.description && <p>{importedPackage.description}</p>}
-            <div className="ai-package-command-list">{commandBlock("Install command", importedPackage.suggestedInstallCommand, handleCopyPackageText)}{commandBlock("Build command", importedPackage.suggestedBuildCommand, handleCopyPackageText)}{commandBlock("Git commit message", importedPackage.suggestedCommitMessage, handleCopyPackageText)}</div>
+            <details className="ai-package-advanced"><summary>Advanced commands and package metadata</summary><div className="ai-package-command-list">{commandBlock("Install command", importedPackage.suggestedInstallCommand, handleCopyPackageText)}{commandBlock("Build command", importedPackage.suggestedBuildCommand, handleCopyPackageText)}{commandBlock("Git commit message", importedPackage.suggestedCommitMessage, handleCopyPackageText)}</div></details>
             <div className="ai-package-file-list"><strong>Replacement files ({importedPackage.files.length})</strong>{importedPackage.files.length ? <ul>{importedPackage.files.map((file) => <li key={`${file.source}:${file.target}`} className={file.exists ? "" : "missing"}><span>{file.exists ? "✓" : "!"}</span><code>{file.target}</code></li>)}</ul> : <p>No replacement files were found.</p>}</div>
             {importedPackage.warnings.length ? <div className="ai-package-warning-list"><strong>Validation notes</strong><ul>{importedPackage.warnings.map((warning) => <li key={warning}>{warning}</li>)}</ul></div> : null}
             <div className="ai-development-runner">
               <div><span>Guided Development Pipeline</span><strong>Install → Build → Ready to Commit</strong><p>Uses the reviewed package, the standard backup installer, and the detected safe build command.</p></div>
-              <button type="button" onClick={handleRunDevelopmentPipeline} disabled={isWorking || !importedPackage.ok || importedPackage.safetyState === "blocked"}>{isWorking ? "Pipeline Running…" : "Install Package and Run Build"}</button>
+              <button type="button" onClick={handleRunDevelopmentPipeline} disabled={isWorking || !importedPackage.ok || importedPackage.safetyState === "blocked"}>{isWorking ? "Installing and Building…" : "Install Package and Run Build"}</button>
             </div>
-            {pipelineResult && <div className={`ai-development-result ${pipelineResult.ok ? "success" : "failed"}`}>
-              <div><span>{pipelineResult.ok ? "Pipeline complete" : "Pipeline stopped"}</span><strong>{pipelineResult.message}</strong><time>{new Date(pipelineResult.completedAt).toLocaleString()}</time></div>
-              <div className="ai-development-stage-grid"><div><span>Install</span><strong>{pipelineResult.install.status}</strong></div><div><span>Build</span><strong>{pipelineResult.build.status}</strong></div><div><span>Commit</span><strong>{pipelineResult.suggestedCommitMessage ?? "Review changes"}</strong></div></div>
+            {(isWorking || pipelineResult) && <div className={`ai-development-result ${pipelineResult ? (pipelineResult.ok ? "success" : "failed") : "running"}`} aria-live="polite">
+              <div className="ai-pipeline-result-heading"><span>{pipelineResult ? (pipelineResult.ok ? "Pipeline complete" : "Pipeline stopped") : "Pipeline in progress"}</span><strong>{pipelineResult?.message ?? "Workflow Studio is installing the package and running the build."}</strong><time>{pipelineResult ? new Date(pipelineResult.completedAt).toLocaleString() : pipelineStartedAt ? `Started ${new Date(pipelineStartedAt).toLocaleTimeString()}` : "Starting…"}</time></div>
+              <div className="ai-pipeline-feedback-list">
+                <div className="complete"><span>✓</span><div><strong>Package imported</strong><small>Generated package is loaded into the intake pipeline.</small></div></div>
+                <div className="complete"><span>✓</span><div><strong>Package validated</strong><small>{packageStateLabel(importedPackage.safetyState)} package passed intake review.</small></div></div>
+                <div className={pipelineResult?.install.status === "completed" ? "complete" : pipelineResult?.install.status === "failed" ? "failed" : "active"}><span>{pipelineResult?.install.status === "completed" ? "✓" : pipelineResult?.install.status === "failed" ? "!" : "…"}</span><div><strong>Backup created and files installed</strong><small>{pipelineResult ? `Install ${pipelineResult.install.status}.` : "Running the standard backup-aware installer."}</small></div></div>
+                <div className={pipelineResult?.build.status === "completed" ? "complete" : pipelineResult?.build.status === "failed" ? "failed" : pipelineResult?.install.status === "failed" ? "pending" : "active"}><span>{pipelineResult?.build.status === "completed" ? "✓" : pipelineResult?.build.status === "failed" ? "!" : pipelineResult?.install.status === "failed" ? "–" : "…"}</span><div><strong>Build verification</strong><small>{pipelineResult ? `Build ${pipelineResult.build.status}.` : "Waiting for installation, then running the detected build command."}</small></div></div>
+                <div className={pipelineResult?.ok ? "complete" : pipelineResult ? "pending" : "pending"}><span>{pipelineResult?.ok ? "✓" : "–"}</span><div><strong>{pipelineResult?.ok ? "Ready to commit" : "Commit remains locked"}</strong><small>{pipelineResult?.ok ? (pipelineResult.suggestedCommitMessage ?? "Review changes and commit manually.") : "A successful build is required before committing."}</small></div></div>
+              </div>
+              {pipelineResult && <><div className="ai-development-stage-grid"><div><span>Install</span><strong>{pipelineResult.install.status}</strong></div><div><span>Build</span><strong>{pipelineResult.build.status}</strong></div><div><span>Commit</span><strong>{pipelineResult.ok ? "Ready" : "Not ready"}</strong></div></div>
               <details><summary>Installation output</summary><pre>{pipelineResult.install.output || "No output."}</pre></details>
-              <details><summary>Build output</summary><pre>{pipelineResult.build.output || "No output."}</pre></details>
+              <details><summary>Build output</summary><pre>{pipelineResult.build.output || "No output."}</pre></details></>}
             </div>}
           </div>}
           <div className={`ai-package-readiness ${packageReadiness.state}`}><div><span>{packageReadiness.label}</span><strong>{packageReadiness.summary}</strong></div><ul>{packageReadiness.reasons.map((reason) => <li key={reason}>{reason}</li>)}</ul></div>

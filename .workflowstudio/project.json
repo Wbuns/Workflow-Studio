@@ -1,8 +1,8 @@
 {
   "name": "Workflow Studio",
   "description": "A desktop tool for package-based AI-assisted software development.",
-  "version": "2.0.5.5",
-  "currentMilestone": "v2.0.5.5-session-history",
+  "version": "2.0.6.1",
+  "currentMilestone": "v2.0.6.1-development-pipeline-feedback",
   "projectType": "electron-react-typescript",
   "buildCommand": "npm run build",
   "testCommand": "",
@@ -11,5 +11,5 @@
   "documentationPaths": [
     "docs"
   ],
-  "status": "Package Intake Pipeline active"
+  "status": "Development Pipeline feedback polish active"
 }

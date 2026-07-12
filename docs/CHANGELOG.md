@@ -294,3 +294,17 @@ Completed
 ## Preserved
 
 - Existing workspace analysis, snapshots, continuation prompts, package validation, and package safety behavior.
+
+
+# v2.0.6.1 — Development Pipeline Feedback
+
+## Added
+
+- Persistent package-import, validation, installation, build, and commit-readiness states.
+- Visible in-progress feedback while the integrated pipeline runs.
+- Clear failed-stage presentation and expandable install/build logs.
+
+## Changed
+
+- Manual commands now live under an Advanced section.
+- Project status now reflects the completed v2.0.5 orchestrator and active release-candidate polish.
