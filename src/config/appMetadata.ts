@@ -1,7 +1,7 @@
 export const appMetadata = {
   name: "Workflow Studio",
-  version: "1.5.2",
-  releaseName: "Daily Driver",
+  version: "2.0.2",
+  releaseName: "Command Palette",
   technologyLabel: "Electron + React",
 } as const;
 

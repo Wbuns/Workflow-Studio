@@ -1,3 +1,50 @@
+
+# v2.0.2 — Command Palette and Workspace Refinement
+
+## Added
+
+- Keyboard command palette with `Ctrl+Shift+P`
+- Searchable navigation and workspace actions
+- Recent command ordering
+- Readiness progress bars without percentages
+- More discoverable Developer Tools section
+
+## Improved
+
+- Dashboard recommendations no longer point to the current Dashboard page
+- Technical details now show an available-command count
+
+# v2.0.1 — Unified Project Workspace
+
+- Added unified project workspace dashboard
+- Added compact status, recommendations, readiness, signals, and quick actions
+- Refined sidebar section headers to appear non-interactive
+- Preserved secure workspace command execution inside technical details
+
+# v2.0.0 — Unified Workspace Visual Foundation
+
+## Added
+
+- Shared visual tokens and unified dark workspace surfaces.
+- Compact package preview layout.
+- Color-coded package safety summary cards.
+- Dark compact skipped-file rows and improved responsive behavior.
+
+---
+
+# v1.5.3 — Package Safety and Export Polish
+
+## Fixed
+
+- Unified package readiness, preview, and export around one safe-file classifier.
+- Excluded generated output, AI snapshot state, package history, backups, caches, logs, coverage, and protected paths.
+- Added categorized skip reasons and packageable/skipped counts.
+- Disabled package export when no packageable replacement files are available.
+- Improved dark-theme command result styling and path wrapping.
+- Updated application version identity to 1.5.3.
+
+---
+
 # v1.5.1 — Daily Driver UX Fixes
 
 ## Fixed

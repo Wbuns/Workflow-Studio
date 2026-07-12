@@ -1,0 +1,15 @@
+{
+  "name": "Workflow Studio",
+  "description": "A desktop tool for package-based AI-assisted software development.",
+  "version": "2.0.0",
+  "currentMilestone": "v1.5.3-package-safety-export-polish",
+  "projectType": "electron-react-typescript",
+  "buildCommand": "npm run build",
+  "testCommand": "",
+  "packageCommand": "",
+  "gitEnabled": true,
+  "documentationPaths": [
+    "docs"
+  ],
+  "status": "v1.5.0 Daily Driver released; ready for regular project use and feedback-driven refinement"
+}

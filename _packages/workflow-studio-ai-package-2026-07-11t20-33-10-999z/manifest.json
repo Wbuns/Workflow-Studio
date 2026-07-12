@@ -1,0 +1,103 @@
+{
+  "packageId": "workflow-studio-ai-package-2026-07-11t20-33-10-999z",
+  "name": "workflow-studio-ai-package-2026-07-11t20-33-10-999z",
+  "version": "1.0.0",
+  "targetProject": "Workflow Studio",
+  "description": "AI Package Builder export for Workflow Studio.",
+  "generatedBy": "Workflow Studio AI Package Builder",
+  "generatedAt": "2026-07-11T20:33:11.012Z",
+  "developerRequest": "Test",
+  "files": [
+    {
+      "source": "files/.workflowstudio/project.json",
+      "target": ".workflowstudio/project.json"
+    },
+    {
+      "source": "files/docs/CHANGELOG.md",
+      "target": "docs/CHANGELOG.md"
+    },
+    {
+      "source": "files/docs/package-builder-test.md",
+      "target": "docs/package-builder-test.md"
+    },
+    {
+      "source": "files/electron/main.ts",
+      "target": "electron/main.ts"
+    },
+    {
+      "source": "files/electron/preload.ts",
+      "target": "electron/preload.ts"
+    },
+    {
+      "source": "files/package-lock.json",
+      "target": "package-lock.json"
+    },
+    {
+      "source": "files/package.json",
+      "target": "package.json"
+    },
+    {
+      "source": "files/src/config/appMetadata.ts",
+      "target": "src/config/appMetadata.ts"
+    },
+    {
+      "source": "files/src/features/ai-development/AIDevelopmentPage.css",
+      "target": "src/features/ai-development/AIDevelopmentPage.css"
+    },
+    {
+      "source": "files/src/features/ai-development/AIDevelopmentPage.tsx",
+      "target": "src/features/ai-development/AIDevelopmentPage.tsx"
+    },
+    {
+      "source": "files/src/features/ai-development/AIDevelopmentService.ts",
+      "target": "src/features/ai-development/AIDevelopmentService.ts"
+    }
+  ],
+  "suggestedInstallCommand": ".\\tools\\package\\install-package.ps1 \"C:\\Users\\mitch\\Desktop\\GPT Workflow Studio\\_packages\\workflow-studio-ai-package-2026-07-11t20-33-10-999z\"",
+  "suggestedBuildCommand": "npm run build",
+  "suggestedCommitMessage": "Test",
+  "manualTestChecklist": [
+    "Install the package with the standard Workflow Studio installer.",
+    "Run the suggested build command.",
+    "Open Workflow Studio and confirm the changed feature still loads.",
+    "Review the changed files before committing."
+  ],
+  "validation": {
+    "requiresChangedFiles": true,
+    "skippedChanges": [
+      {
+        "path": ".workflowstudio/ai-snapshots/_staging/Workflow-Studio-AI-Snapshot-2026-07-11T20-23-36-192Z/",
+        "reason": "Generated Workflow Studio state or AI snapshot history.",
+        "category": "generated"
+      },
+      {
+        "path": ".workflowstudio/ai-snapshots/Workflow-Studio-AI-Snapshot-2026-07-11T20-23-36-192Z.zip",
+        "reason": "Generated Workflow Studio state or AI snapshot history.",
+        "category": "generated"
+      },
+      {
+        "path": "\"docs/Package Safety and Export Polish.md\"",
+        "reason": "File type is not approved for replacement packages.",
+        "category": "unsupported"
+      },
+      {
+        "path": "dist-electron/main.js",
+        "reason": "Generated build, cache, coverage, or temporary output.",
+        "category": "generated"
+      },
+      {
+        "path": "dist-electron/preload.js",
+        "reason": "Generated build, cache, coverage, or temporary output.",
+        "category": "generated"
+      },
+      {
+        "path": "workflowstudio/ai-snapshots.json",
+        "reason": "Changed path is missing or is not a regular file.",
+        "category": "missing"
+      }
+    ],
+    "warnings": [
+      "Skipped 6 generated, protected, deleted, missing, or unsupported changed files."
+    ]
+  }
+}

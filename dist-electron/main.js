@@ -1046,19 +1046,41 @@ function parseGitChangedFiles(rootPath) {
     }))
         .filter((entry) => Boolean(entry.filePath));
 }
-function isSafePackageReplacement(relativePath) {
-    const normalized = relativePath.replace(/\\/g, "/");
-    const parts = normalized.split("/");
-    if (path.isAbsolute(relativePath) || normalized.includes(".."))
-        return false;
-    if (parts.some((part) => [".git", "node_modules", "dist", "_backup", ".vite", "coverage", "ai-snapshots"].includes(part))) {
-        return false;
+function classifyPackageReplacement(rootPath, relativePath, status) {
+    const normalized = relativePath.replace(/\\/g, "/").replace(/^\.\//, "");
+    const lower = normalized.toLowerCase();
+    const parts = lower.split("/");
+    if (path.isAbsolute(relativePath) || parts.includes("..")) {
+        return { packageable: false, skipped: { path: relativePath, reason: "Path is outside the workspace or contains unsafe traversal.", category: "protected" } };
     }
-    if (normalized.startsWith("_packages/"))
-        return false;
-    if (normalized === ".workflowstudio/ai-snapshots.json")
-        return false;
-    return /\.(tsx?|jsx?|json|md|css|scss|html|ps1|yml|yaml|txt)$/i.test(normalized);
+    if (status.includes("D")) {
+        return { packageable: false, skipped: { path: relativePath, reason: "Deleted files are not exported as replacement files.", category: "deleted" } };
+    }
+    const protectedDirectories = new Set([".git", "node_modules", "_packages", "_backup"]);
+    if (parts.some((part) => protectedDirectories.has(part))) {
+        return { packageable: false, skipped: { path: relativePath, reason: "Protected workspace or package-system path.", category: "protected" } };
+    }
+    if (lower === ".workflowstudio/ai-snapshots.json" || lower.startsWith(".workflowstudio/ai-snapshots/") || lower.startsWith(".workflowstudio/cache/") || lower.startsWith(".workflowstudio/temp/") || lower.startsWith(".workflowstudio/logs/")) {
+        return { packageable: false, skipped: { path: relativePath, reason: "Generated Workflow Studio state or AI snapshot history.", category: "generated" } };
+    }
+    const generatedDirectories = new Set(["dist", "dist-electron", ".vite", "coverage", "build", "out", "cache", "temp", "tmp", "logs"]);
+    if (parts.some((part) => generatedDirectories.has(part)) || /(^|\/)\.pio(\/|$)/i.test(normalized)) {
+        return { packageable: false, skipped: { path: relativePath, reason: "Generated build, cache, coverage, or temporary output.", category: "generated" } };
+    }
+    if (/\.(log|tmp|cache|map)$/i.test(normalized)) {
+        return { packageable: false, skipped: { path: relativePath, reason: "Generated log, cache, temporary, or source-map file.", category: "generated" } };
+    }
+    if (!/\.(tsx?|jsx?|json|md|css|scss|html|ps1|yml|yaml|txt|ini|toml|c|cc|cpp|h|hpp|py|rs)$/i.test(normalized)) {
+        return { packageable: false, skipped: { path: relativePath, reason: "File type is not approved for replacement packages.", category: "unsupported" } };
+    }
+    const candidate = path.join(rootPath, normalized);
+    if (!fs.existsSync(candidate) || !fs.statSync(candidate).isFile()) {
+        return { packageable: false, skipped: { path: relativePath, reason: "Changed path is missing or is not a regular file.", category: "missing" } };
+    }
+    return { packageable: true };
+}
+function emptyPackageCounts() {
+    return { changed: 0, packageable: 0, skipped: 0, generated: 0, protected: 0, deleted: 0, unsupported: 0, missing: 0 };
 }
 function getAIPackageReadiness(rootPathInput) {
     const rootPath = normalizeRoot(rootPathInput);
@@ -1068,30 +1090,39 @@ function getAIPackageReadiness(rootPathInput) {
             changedFiles: [],
             packageableFiles: [],
             skippedFiles: [],
+            counts: emptyPackageCounts(),
             message: "Git status is required to identify packageable changes.",
         };
     }
     const rawChanges = parseGitChangedFiles(rootPath);
     const changedFiles = rawChanges.map((entry) => entry.filePath);
-    const packageableFiles = rawChanges
-        .filter((entry) => !entry.status.includes("D"))
-        .map((entry) => entry.filePath)
-        .filter((filePath) => isSafePackageReplacement(filePath))
-        .filter((filePath) => {
-        const candidate = path.join(rootPath, filePath);
-        return fs.existsSync(candidate) && fs.statSync(candidate).isFile();
-    })
-        .sort((a, b) => a.localeCompare(b));
-    const skippedFiles = changedFiles.filter((filePath) => !packageableFiles.includes(filePath));
+    const packageableFiles = [];
+    const skippedFiles = [];
+    for (const entry of rawChanges) {
+        const result = classifyPackageReplacement(rootPath, entry.filePath, entry.status);
+        if (result.packageable)
+            packageableFiles.push(entry.filePath);
+        else if (result.skipped)
+            skippedFiles.push(result.skipped);
+    }
+    packageableFiles.sort((a, b) => a.localeCompare(b));
+    skippedFiles.sort((a, b) => a.path.localeCompare(b.path));
+    const counts = emptyPackageCounts();
+    counts.changed = changedFiles.length;
+    counts.packageable = packageableFiles.length;
+    counts.skipped = skippedFiles.length;
+    for (const file of skippedFiles)
+        counts[file.category] += 1;
     return {
         isRepository: true,
         changedFiles,
         packageableFiles,
         skippedFiles,
+        counts,
         message: packageableFiles.length
-            ? `${packageableFiles.length} safe replacement file${packageableFiles.length === 1 ? "" : "s"} ready.`
+            ? `${packageableFiles.length} packageable file${packageableFiles.length === 1 ? "" : "s"} ready; ${skippedFiles.length} skipped safely.`
             : changedFiles.length
-                ? "Workspace changes were found, but none are safe replacement files."
+                ? "Workspace changes were found, but none are packageable replacement files."
                 : "No workspace changes were detected.",
     };
 }
@@ -1194,7 +1225,7 @@ function createAIPackage(input) {
     const safeChanges = readiness.packageableFiles;
     const skippedChanges = readiness.skippedFiles;
     if (skippedChanges.length) {
-        warnings.push(`Skipped ${skippedChanges.length} changed file${skippedChanges.length === 1 ? "" : "s"} that cannot be safely packaged as replacement files.`);
+        warnings.push(`Skipped ${skippedChanges.length} generated, protected, deleted, missing, or unsupported changed file${skippedChanges.length === 1 ? "" : "s"}.`);
     }
     if (!safeChanges.length) {
         return {
@@ -1203,8 +1234,9 @@ function createAIPackage(input) {
             files: [],
             warnings: [
                 ...warnings,
-                "Make the milestone code changes first, then run AI Package Builder again.",
+                "Make a safe source or documentation change, then run AI Package Builder again.",
             ],
+            skippedFiles: skippedChanges,
             safetyState: "blocked",
             validationSummary: "Blocked: no safe changed replacement files were found."
         };
@@ -1248,7 +1280,7 @@ function createAIPackage(input) {
         ],
         validation: {
             requiresChangedFiles: true,
-            skippedChanges,
+            skippedChanges: skippedChanges.map((file) => ({ path: file.path, reason: file.reason, category: file.category })),
             warnings,
         },
     };
@@ -1272,6 +1304,7 @@ function createAIPackage(input) {
             packagePath,
             files: safeChanges,
             warnings: [...warnings, ...validationWarnings],
+            skippedFiles: skippedChanges,
             safetyState: "blocked",
             validationSummary: "Blocked: generated package structure did not pass validation.",
         };
@@ -1286,6 +1319,7 @@ function createAIPackage(input) {
         buildCommand,
         suggestedCommitMessage,
         warnings,
+        skippedFiles: skippedChanges,
         safetyState: warnings.length ? "warning" : "safe",
         validationSummary: warnings.length
             ? "Package created with warnings. Review skipped files before installing."

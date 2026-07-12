@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { CommandPalette } from "../components/CommandPalette/CommandPalette";
 import { Header } from "../components/Header/Header";
 import { Sidebar } from "../components/Sidebar/Sidebar";
 import { StatusBar } from "../components/StatusBar/StatusBar";
@@ -85,6 +86,7 @@ function App() {
       />
       <Workspace activePage={activePage} activeWorkspace={activeWorkspace} onNavigate={handleNavigate} />
       <StatusBar activePage={activePage} activeWorkspace={activeWorkspace} />
+      <CommandPalette navigationItems={navigationItems} onNavigate={handleNavigate} />
     </div>
   );
 }
