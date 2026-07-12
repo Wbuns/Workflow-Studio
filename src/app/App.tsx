@@ -12,20 +12,18 @@ import {
   selectWorkspace,
 } from "../services/WorkspaceRegistryService";
 import type { WorkspaceRegistryState } from "../types/workspaceRegistry";
+import { loadWorkspacePreferences, updateWorkspacePreferences } from "../services/WorkspacePreferencesService";
 import "./App.css";
 
-const ACTIVE_PAGE_KEY = "workflowstudio.activePage";
-const SIDEBAR_COLLAPSED_KEY = "workflowstudio.sidebarCollapsed";
-
 function getInitialPageId() {
-  const saved = window.sessionStorage.getItem(ACTIVE_PAGE_KEY);
+  const saved = loadWorkspacePreferences().activePageId;
   return navigationItems.some((item) => item.id === saved) ? saved! : "dashboard";
 }
 
 function App() {
   const [activePageId, setActivePageId] = useState(getInitialPageId);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(
-    () => window.localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === "true",
+    () => Boolean(loadWorkspacePreferences().sidebarCollapsed),
   );
   const [workspaceRegistry, setWorkspaceRegistry] = useState<WorkspaceRegistryState>({
     activeWorkspaceId: "",
@@ -59,11 +57,11 @@ function App() {
   }, [workspaceRegistry]);
 
   useEffect(() => {
-    window.sessionStorage.setItem(ACTIVE_PAGE_KEY, activePageId);
+    updateWorkspacePreferences({ activePageId });
   }, [activePageId]);
 
   useEffect(() => {
-    window.localStorage.setItem(SIDEBAR_COLLAPSED_KEY, String(sidebarCollapsed));
+    updateWorkspacePreferences({ sidebarCollapsed });
   }, [sidebarCollapsed]);
 
   function handleNavigate(pageId: string) {

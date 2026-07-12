@@ -326,3 +326,10 @@ Completed
 
 - Themed native controls and scrollbars.
 - Improved package file and command presentation.
+
+
+# v2.0.6.5 — Timeline and Workspace Preferences
+
+- Added shared local workspace preferences.
+- Remembered active page, sidebar state, and Timeline filter.
+- Refined Timeline grouping and interaction styling.

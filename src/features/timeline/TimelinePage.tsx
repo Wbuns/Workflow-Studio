@@ -3,6 +3,7 @@ import type { NavigationItem } from "../../types/navigation";
 import type { ProjectTimelineEvent, ProjectTimelineEventKind } from "../../types/timeline";
 import { getProjectTimeline } from "../../services/TimelineService";
 import { openWorkspacePath } from "../../services/WorkspaceOpenService";
+import { loadWorkspacePreferences, updateWorkspacePreferences } from "../../services/WorkspacePreferencesService";
 
 type TimelinePageProps = { activePage: NavigationItem; rootPath?: string };
 type TimelineFilter = "all" | ProjectTimelineEventKind;
@@ -36,7 +37,7 @@ function iconFor(kind: ProjectTimelineEventKind) {
 export function TimelinePage({ activePage, rootPath }: TimelinePageProps) {
   const [events, setEvents] = useState<ProjectTimelineEvent[]>([]);
   const [warnings, setWarnings] = useState<string[]>([]);
-  const [filter, setFilter] = useState<TimelineFilter>("all");
+  const [filter, setFilter] = useState<TimelineFilter>(() => { const saved = loadWorkspacePreferences().timelineFilter; return filterLabels.some((item) => item.id === saved) ? saved as TimelineFilter : "all"; });
   const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState("");
 
@@ -79,7 +80,7 @@ export function TimelinePage({ activePage, rootPath }: TimelinePageProps) {
 
     <section className="detail-panel timeline-panel">
       <div className="timeline-toolbar" role="tablist" aria-label="Timeline filters">
-        {filterLabels.map((item) => <button key={item.id} className={filter === item.id ? "active" : ""} onClick={() => setFilter(item.id)}>{item.label}</button>)}
+        {filterLabels.map((item) => <button key={item.id} className={filter === item.id ? "active" : ""} onClick={() => { setFilter(item.id); updateWorkspacePreferences({ timelineFilter: item.id }); }}>{item.label}</button>)}
       </div>
       {status && <p className="timeline-status">{status}</p>}
       {warnings.map((warning) => <p className="timeline-warning" key={warning}>{warning}</p>)}
