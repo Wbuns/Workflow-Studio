@@ -1,3 +1,4 @@
+import { resolveWorkspaceRoot } from "./ActiveWorkspaceService";
 export type WorkspaceTemplateEntry = {
   name: string;
   path: string;
@@ -16,7 +17,7 @@ export async function listWorkspaceTemplates(rootPath?: string): Promise<Workspa
 
   try {
     if (bridge?.workspace?.listTemplates) {
-      return await bridge.workspace.listTemplates(rootPath);
+      return await bridge.workspace.listTemplates(resolveWorkspaceRoot(rootPath));
     }
   } catch (error) {
     console.warn("Unable to list workspace templates.", error);

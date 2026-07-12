@@ -1,3 +1,4 @@
+import { resolveWorkspaceRoot } from "./ActiveWorkspaceService";
 import { scanWorkspace } from "./WorkspaceScanner";
 import type { WorkspaceAnalysis } from "../types/workspaceAnalysis";
 
@@ -109,7 +110,7 @@ Development workflow:
 }
 
 export async function generateAIContext(rootPath?: string): Promise<AIContextSummary> {
-  const analysis = await scanWorkspace(rootPath);
+  const analysis = await scanWorkspace(resolveWorkspaceRoot(rootPath));
   const generatedAt = new Date().toLocaleString();
 
   return {

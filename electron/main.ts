@@ -1306,8 +1306,8 @@ function removeDirectoryWithRetry(folderPath: string, attempts = 5) {
   throw lastError;
 }
 
-function createSnapshotStagingFolder(outputFolder: string, snapshotName: string) {
-  const stagingRoot = path.join(outputFolder, "_staging");
+function createSnapshotStagingFolder(_outputFolder: string, snapshotName: string) {
+  const stagingRoot = path.join(app.getPath("temp"), "workflow-studio-ai-snapshots");
   fs.mkdirSync(stagingRoot, { recursive: true });
 
   const preferredFolder = path.join(stagingRoot, snapshotName);

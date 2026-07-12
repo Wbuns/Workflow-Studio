@@ -1,3 +1,4 @@
+import { resolveWorkspaceRoot } from "./ActiveWorkspaceService";
 export type WorkspacePackageEntry = {
   name: string;
   path: string;
@@ -24,11 +25,11 @@ function bridge() {
 }
 
 export async function listWorkspacePackages(rootPath?: string): Promise<WorkspacePackageEntry[]> {
-  try { return (await bridge()?.workspace?.listPackages?.(rootPath)) ?? []; }
+  try { return (await bridge()?.workspace?.listPackages?.(resolveWorkspaceRoot(rootPath))) ?? []; }
   catch (error) { console.warn("Unable to list workspace packages.", error); return []; }
 }
 
 export async function getWorkspacePackageTree(rootPath?: string): Promise<WorkspacePackageTreeNode[]> {
-  try { return (await bridge()?.workspace?.getPackageTree?.(rootPath)) ?? []; }
+  try { return (await bridge()?.workspace?.getPackageTree?.(resolveWorkspaceRoot(rootPath))) ?? []; }
   catch (error) { console.warn("Unable to read package tree.", error); return []; }
 }

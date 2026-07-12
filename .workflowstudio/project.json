@@ -1,8 +1,8 @@
 {
   "name": "Workflow Studio",
   "description": "A desktop tool for package-based AI-assisted software development.",
-  "version": "2.1.2",
-  "currentMilestone": "v2.1.2-project-registration",
+  "version": "2.1.2-a",
+  "currentMilestone": "v2.1.2a-active-project-and-snapshot-reliability",
   "projectType": "electron-react-typescript",
   "buildCommand": "npm run build",
   "testCommand": "",
@@ -11,5 +11,5 @@
   "documentationPaths": [
     "docs"
   ],
-  "status": "Workflow Studio v2.1.1 workspace registry foundation complete"
+  "status": "Active project persistence and snapshot staging reliability hotfix"
 }

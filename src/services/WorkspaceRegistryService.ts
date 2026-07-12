@@ -283,6 +283,25 @@ export async function refreshProjectHealth(
 
 export async function loadWorkspaceRegistry(): Promise<WorkspaceRegistryState> {
   const registry = readRegistry();
+  const activeProject = getActiveProject(registry);
+
+  if (activeProject) {
+    try {
+      const analysis = await scanWorkspace(activeProject.rootPath);
+      const refreshedProject = workspaceFromAnalysis(analysis, activeProject);
+
+      return writeRegistry({
+        ...registry,
+        projects: registry.projects.map((project) =>
+          project.id === activeProject.id ? refreshedProject : project,
+        ),
+      });
+    } catch (error) {
+      console.warn("Unable to refresh the persisted active project.", error);
+      return registry;
+    }
+  }
+
   const analysis = await scanWorkspace();
   return registerProject(registry, analysis);
 }

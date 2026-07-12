@@ -1,0 +1,20 @@
+import { appMetadata } from "../../config/appMetadata";
+import type { NavigationItem } from "../../types/navigation";
+import type { WorkspaceRecord } from "../../types/workspaceRegistry";
+
+type StatusBarProps = {
+  activePage: NavigationItem;
+  activeWorkspace?: WorkspaceRecord;
+};
+
+export function StatusBar({ activePage, activeWorkspace }: StatusBarProps) {
+  return (
+    <footer className="status-bar">
+      <span>Active page: {activePage.label}</span>
+      <span>Workspace: {activeWorkspace?.name ?? "Scanning"}</span>
+      <span className="status-build-ready">Build status: Ready</span>
+      <span>{appMetadata.technologyLabel}</span>
+      <span className="status-release">v{appMetadata.version} {appMetadata.releaseName}</span>
+    </footer>
+  );
+}

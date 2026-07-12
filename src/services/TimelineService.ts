@@ -1,3 +1,4 @@
+import { resolveWorkspaceRoot } from "./ActiveWorkspaceService";
 import type { ProjectTimelineResult } from "../types/timeline";
 
 type TimelineBridge = {
@@ -19,5 +20,5 @@ export async function getProjectTimeline(rootPath?: string): Promise<ProjectTime
       warnings: ["Project timeline backend is not available. Restart Workflow Studio after installing the package."],
     };
   }
-  return loadTimeline(rootPath);
+  return loadTimeline(resolveWorkspaceRoot(rootPath));
 }

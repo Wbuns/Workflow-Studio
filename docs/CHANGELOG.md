@@ -1,3 +1,12 @@
+# v2.1.2a — Active Project and Snapshot Reliability
+
+## Fixed
+
+- Restores the last active registered project after restarting Workflow Studio.
+- Refreshes the persisted active project without forcing Workflow Studio itself active.
+- Moves AI snapshot staging outside the workspace so Vite cannot watch or reload it.
+- Preserves existing snapshot ZIP destinations and history.
+
 # v2.1.2 — Project Registration
 
 - Added registered-project management to Projects.

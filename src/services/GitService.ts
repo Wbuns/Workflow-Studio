@@ -1,3 +1,4 @@
+import { resolveWorkspaceRoot } from "./ActiveWorkspaceService";
 export type GitStatus = {
   isRepository: boolean;
   branch: string;
@@ -25,7 +26,7 @@ export async function getGitStatus(rootPath?: string): Promise<GitStatus> {
 
   try {
     if (bridge?.workspace?.gitStatus) {
-      return await bridge.workspace.gitStatus(rootPath);
+      return await bridge.workspace.gitStatus(resolveWorkspaceRoot(rootPath));
     }
   } catch (error) {
     console.warn("Unable to load Git status.", error);

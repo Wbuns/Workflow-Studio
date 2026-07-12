@@ -1,3 +1,4 @@
+import { resolveWorkspaceRoot } from "./ActiveWorkspaceService";
 export type DocumentationEntry = {
   title: string;
   path: string;
@@ -15,7 +16,7 @@ export async function listDocumentation(rootPath?: string): Promise<Documentatio
 
   try {
     if (bridge?.workspace?.listDocumentation) {
-      return await bridge.workspace.listDocumentation(rootPath);
+      return await bridge.workspace.listDocumentation(resolveWorkspaceRoot(rootPath));
     }
   } catch (error) {
     console.warn("Unable to list documentation.", error);
