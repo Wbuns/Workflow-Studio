@@ -22,11 +22,36 @@ export type DeveloperValidationReport = {
   generatedAt: string;
 };
 
+export type DeveloperPackageFileAction = "new" | "overwrite" | "skipped" | "failed";
+
+export type DeveloperPackageFileOperation = {
+  source: string;
+  destination: string;
+  target: string;
+  action: DeveloperPackageFileAction;
+  verified: boolean;
+  message?: string;
+};
+
+export type DeveloperPackageInstallDiagnostics = {
+  packageRoot: string;
+  projectRoot: string;
+  manifestVersion: string;
+  elapsedMs: number;
+  validationSummary: string[];
+  operations: DeveloperPackageFileOperation[];
+};
+
 export type DeveloperPackageInstallResult = DeveloperWorkflowResult & {
   packageId?: string;
   packagePath?: string;
   backupPath?: string;
   filesInstalled?: number;
+  copied?: number;
+  overwritten?: number;
+  skipped?: number;
+  failed?: number;
+  diagnostics?: DeveloperPackageInstallDiagnostics;
 };
 
 export type DeveloperBuildSession = {

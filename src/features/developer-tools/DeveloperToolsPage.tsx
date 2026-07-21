@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import type { NavigationItem } from "../../types/navigation";
 import type { WorkspaceRecord } from "../../types/workspaceRegistry";
-import type { DeveloperAutomationRecord, DeveloperGitAutomationState, DeveloperReleaseReadiness, DeveloperValidationReport, DeveloperWorkflowResult } from "../../types/developerWorkflow";
+import type { DeveloperAutomationRecord, DeveloperGitAutomationState, DeveloperPackageInstallResult, DeveloperReleaseReadiness, DeveloperValidationReport, DeveloperWorkflowResult } from "../../types/developerWorkflow";
 import { DeveloperWorkflowService } from "../../services/DeveloperWorkflowService";
 import { createAISnapshot, openAISnapshotFolder } from "../ai-development/AIDevelopmentService";
 import "./DeveloperToolsPage.css";
@@ -15,7 +15,7 @@ export function DeveloperToolsPage({
   activePage,
   activeWorkspace,
 }: DeveloperToolsPageProps) {
-  const [result, setResult] = useState<DeveloperWorkflowResult>();
+  const [result, setResult] = useState<DeveloperWorkflowResult | DeveloperPackageInstallResult>();
   const [busyAction, setBusyAction] = useState<string>();
   const [buildOutput, setBuildOutput] = useState<string[]>([]);
   const [validationReport, setValidationReport] = useState<DeveloperValidationReport>();
@@ -372,6 +372,30 @@ export function DeveloperToolsPage({
         <h3>Latest Result</h3>
         <p>{busyAction ? "Running developer workflow…" : result?.message ?? "Choose an action to begin."}</p>
         {result?.details?.length ? <ul>{result.details.map((detail) => <li key={detail}>{detail}</li>)}</ul> : null}
+        {result && "diagnostics" in result && result.diagnostics ? (
+          <details className="developer-installer-diagnostics">
+            <summary>Installer Diagnostics</summary>
+            <dl>
+              <div><dt>Package root</dt><dd>{result.diagnostics.packageRoot}</dd></div>
+              <div><dt>Project root</dt><dd>{result.diagnostics.projectRoot}</dd></div>
+              <div><dt>Manifest version</dt><dd>{result.diagnostics.manifestVersion}</dd></div>
+              <div><dt>Elapsed time</dt><dd>{result.diagnostics.elapsedMs} ms</dd></div>
+            </dl>
+            <div className="developer-installer-validation">
+              {result.diagnostics.validationSummary.map((item) => <p key={item}>✓ {item}</p>)}
+            </div>
+            <div className="developer-installer-operations">
+              {result.diagnostics.operations.map((operation, index) => (
+                <article key={`${operation.target}-${index}`}>
+                  <strong>{operation.action.toUpperCase()} · {operation.target}</strong>
+                  <span>Source: {operation.source}</span>
+                  <span>Destination: {operation.destination}</span>
+                  <span>{operation.verified ? "Verified" : operation.message ?? "Not verified"}</span>
+                </article>
+              ))}
+            </div>
+          </details>
+        ) : null}
       </section>
     </>
   );

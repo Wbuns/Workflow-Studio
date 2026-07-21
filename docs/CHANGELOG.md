@@ -1,3 +1,12 @@
+# v2.2.4 — Package Installer Reliability
+
+## Added
+
+- Deterministic package file operations and post-copy verification.
+- Duplicate and unsafe destination path detection.
+- Partial-install rollback and detailed installer diagnostics.
+- Reliable copied, overwritten, skipped, and failed counts.
+
 # v2.1.9 — Guided Release Workflow
 
 ## Added

@@ -2036,7 +2036,18 @@ function runDevelopmentPipeline(rootPathInput: string | undefined, packagePathIn
 
 type DeveloperPackageManifest = {
   packageId?: string;
-  files?: Array<{ source?: string; target?: string }>;
+  version?: string;
+  manifestVersion?: string | number;
+  files?: Array<{ source?: string; target?: string; required?: boolean }>;
+};
+
+type DeveloperPackageFileOperation = {
+  source: string;
+  destination: string;
+  target: string;
+  action: "new" | "overwrite" | "skipped" | "failed";
+  verified: boolean;
+  message?: string;
 };
 
 function newestDownloadedWorkflowPackage(): string | undefined {
@@ -2068,37 +2079,190 @@ function extractPackageArchive(zipPath: string): string {
   return destination;
 }
 
+function isPathInside(rootPath: string, candidatePath: string): boolean {
+  const relative = path.relative(rootPath, candidatePath);
+  return relative === "" || (!relative.startsWith("..") && !path.isAbsolute(relative));
+}
+
+function detectExtractedPackageRoot(extractedPath: string): string {
+  if (fs.existsSync(path.join(extractedPath, "manifest.json"))) return extractedPath;
+  const directories = fs.readdirSync(extractedPath, { withFileTypes: true }).filter((entry) => entry.isDirectory());
+  const candidates = directories
+    .map((entry) => path.join(extractedPath, entry.name))
+    .filter((candidate) => fs.existsSync(path.join(candidate, "manifest.json")));
+  if (candidates.length === 1) return candidates[0];
+  throw new Error("Package manifest.json was not found at the archive root or in a single package folder.");
+}
+
+function filesMatch(left: string, right: string): boolean {
+  const leftStat = fs.statSync(left);
+  const rightStat = fs.statSync(right);
+  if (leftStat.size !== rightStat.size) return false;
+  return fs.readFileSync(left).equals(fs.readFileSync(right));
+}
+
 function installDeveloperPackage(rootPathInput: string | undefined, zipPath: string) {
-  const rootPath = normalizeRoot(rootPathInput);
-  const extractedPath = extractPackageArchive(zipPath);
-  const manifestPath = path.join(extractedPath, "manifest.json");
-  if (!fs.existsSync(manifestPath)) throw new Error("Package manifest.json was not found.");
+  const startedAt = Date.now();
+  let extractedPath = "";
+  let packageRoot = "";
+  let manifestVersion = "unknown";
+  let packageId: string | undefined;
+  let backupPath: string | undefined;
+  const operations: DeveloperPackageFileOperation[] = [];
+  const validationSummary: string[] = [];
+  const rollbackEntries: Array<{ target: string; backup?: string; created: boolean }> = [];
 
-  const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8")) as DeveloperPackageManifest;
-  if (!manifest.packageId || !manifest.files?.length) throw new Error("Package manifest is incomplete.");
+  const result = (ok: boolean, message: string, details?: string[]) => {
+    const copied = operations.filter((operation) => operation.action === "new" && operation.verified).length;
+    const overwritten = operations.filter((operation) => operation.action === "overwrite" && operation.verified).length;
+    const skipped = operations.filter((operation) => operation.action === "skipped").length;
+    const failed = operations.filter((operation) => operation.action === "failed" || !operation.verified).length;
+    return {
+      ok,
+      message,
+      details,
+      packageId,
+      packagePath: zipPath,
+      backupPath,
+      filesInstalled: copied + overwritten,
+      copied,
+      overwritten,
+      skipped,
+      failed,
+      diagnostics: {
+        packageRoot: packageRoot || extractedPath || zipPath,
+        projectRoot: rootPathInput ? path.resolve(rootPathInput) : "",
+        manifestVersion,
+        elapsedMs: Date.now() - startedAt,
+        validationSummary,
+        operations,
+      },
+    };
+  };
 
-  const backupPath = path.join(rootPath, "_backup", manifest.packageId, new Date().toISOString().replace(/[:.]/g, "-"));
-  let filesInstalled = 0;
+  try {
+    const rootPath = normalizeRoot(rootPathInput);
+    if (!rootPathInput || !fs.existsSync(rootPath) || !fs.statSync(rootPath).isDirectory()) {
+      throw new Error("The selected project root is invalid or unavailable.");
+    }
+    validationSummary.push("Project root verified.");
 
-  for (const file of manifest.files) {
-    if (!file.source || !file.target) throw new Error("Package file entry is missing source or target.");
-    const source = path.resolve(extractedPath, file.source);
-    const target = path.resolve(rootPath, file.target);
-    if (!source.startsWith(extractedPath) || !target.startsWith(rootPath)) throw new Error("Package contains an unsafe file path.");
-    if (!fs.existsSync(source)) throw new Error(`Package source is missing: ${file.source}`);
-
-    if (fs.existsSync(target)) {
-      const backupTarget = path.join(backupPath, file.target);
-      fs.mkdirSync(path.dirname(backupTarget), { recursive: true });
-      fs.copyFileSync(target, backupTarget);
+    if (!zipPath || !fs.existsSync(zipPath) || !fs.statSync(zipPath).isFile()) {
+      throw new Error("The selected package ZIP is invalid or unavailable.");
     }
 
-    fs.mkdirSync(path.dirname(target), { recursive: true });
-    fs.copyFileSync(source, target);
-    filesInstalled += 1;
-  }
+    extractedPath = extractPackageArchive(zipPath);
+    packageRoot = detectExtractedPackageRoot(extractedPath);
+    const manifestPath = path.join(packageRoot, "manifest.json");
+    const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8")) as DeveloperPackageManifest;
+    packageId = manifest.packageId;
+    manifestVersion = String(manifest.manifestVersion ?? manifest.version ?? "legacy");
+    if (!manifest.packageId || !Array.isArray(manifest.files) || manifest.files.length === 0) {
+      throw new Error("Package manifest is incomplete or contains no files.");
+    }
 
-  return { ok: true, message: `Installed ${manifest.packageId}.`, packageId: manifest.packageId, packagePath: zipPath, backupPath, filesInstalled };
+    const prepared = manifest.files.map((file, index) => {
+      if (!file.source || !file.target) throw new Error(`Manifest file entry ${index + 1} is missing source or target.`);
+      const source = path.resolve(packageRoot, file.source);
+      const target = path.resolve(rootPath, file.target);
+      if (!isPathInside(packageRoot, source)) throw new Error(`Manifest source path escapes the package root: ${file.source}`);
+      if (!isPathInside(rootPath, target) || target === rootPath) throw new Error(`Manifest destination path is invalid: ${file.target}`);
+      if (!fs.existsSync(source) || !fs.statSync(source).isFile()) throw new Error(`Package source is missing or is not a file: ${file.source}`);
+      if (fs.statSync(source).size <= 0) throw new Error(`Package source is empty: ${file.source}`);
+      return { ...file, source, target, sourceLabel: file.source, targetLabel: file.target };
+    });
+
+    const normalizedTargets = prepared.map((file) => process.platform === "win32" ? file.target.toLowerCase() : file.target);
+    const duplicate = normalizedTargets.find((target, index) => normalizedTargets.indexOf(target) !== index);
+    if (duplicate) throw new Error(`Package manifest contains a duplicate destination path: ${prepared[normalizedTargets.indexOf(duplicate)].targetLabel}`);
+    validationSummary.push(`Manifest verified (${prepared.length} file${prepared.length === 1 ? "" : "s"}).`);
+
+    backupPath = path.join(rootPath, "_backup", manifest.packageId, new Date().toISOString().replace(/[:.]/g, "-"));
+
+    for (const file of prepared) {
+      const operation: DeveloperPackageFileOperation = {
+        source: file.source,
+        destination: file.target,
+        target: file.targetLabel,
+        action: "new",
+        verified: false,
+      };
+      operations.push(operation);
+
+      try {
+        const existed = fs.existsSync(file.target);
+        if (existed && filesMatch(file.source, file.target)) {
+          operation.action = "skipped";
+          operation.verified = true;
+          operation.message = "Destination already matches package source.";
+          continue;
+        }
+
+        let backupTarget: string | undefined;
+        if (existed) {
+          operation.action = "overwrite";
+          backupTarget = path.join(backupPath, file.targetLabel);
+          fs.mkdirSync(path.dirname(backupTarget), { recursive: true });
+          fs.copyFileSync(file.target, backupTarget);
+          if (!fs.existsSync(backupTarget)) throw new Error("Backup verification failed.");
+        }
+
+        rollbackEntries.push({ target: file.target, backup: backupTarget, created: !existed });
+        fs.mkdirSync(path.dirname(file.target), { recursive: true });
+        fs.copyFileSync(file.source, file.target);
+
+        if (!fs.existsSync(file.target)) throw new Error("Destination file was not created.");
+        const targetStat = fs.statSync(file.target);
+        if (!targetStat.isFile() || targetStat.size <= 0) throw new Error("Destination file is missing or empty after copy.");
+        if (!filesMatch(file.source, file.target)) throw new Error("Destination content does not match the package source.");
+        operation.verified = true;
+      } catch (error) {
+        operation.action = "failed";
+        operation.message = error instanceof Error ? error.message : "File installation failed.";
+        throw error;
+      }
+    }
+
+    const installedCount = operations.filter((operation) => (operation.action === "new" || operation.action === "overwrite") && operation.verified).length;
+    if (installedCount === 0) throw new Error("No files were installed. Every manifest entry was skipped or failed.");
+    if (operations.some((operation) => !operation.verified)) throw new Error("Post-install verification failed for one or more files.");
+    validationSummary.push("Every installed file exists, is non-empty, and matches its package source.");
+
+    const counts = result(true, `Package Installed: ${manifest.packageId}`);
+    return {
+      ...counts,
+      details: [
+        `Files Copied: ${counts.copied}`,
+        `Files Overwritten: ${counts.overwritten}`,
+        `Files Skipped: ${counts.skipped}`,
+        `Files Failed: ${counts.failed}`,
+        `Destination: ${rootPath}`,
+        "Validation: Manifest verified; Project verified; Files verified.",
+      ],
+    };
+  } catch (error) {
+    const rollbackErrors: string[] = [];
+    for (const entry of [...rollbackEntries].reverse()) {
+      try {
+        if (entry.created) fs.rmSync(entry.target, { force: true });
+        else if (entry.backup && fs.existsSync(entry.backup)) {
+          fs.mkdirSync(path.dirname(entry.target), { recursive: true });
+          fs.copyFileSync(entry.backup, entry.target);
+        }
+      } catch (rollbackError) {
+        rollbackErrors.push(`${entry.target}: ${rollbackError instanceof Error ? rollbackError.message : "rollback failed"}`);
+      }
+    }
+    if (rollbackEntries.length > 0) validationSummary.push(rollbackErrors.length ? "Rollback completed with errors." : "Partial installation rolled back.");
+    const reason = error instanceof Error ? error.message : "Package installation failed.";
+    const failedFiles = operations.filter((operation) => operation.action === "failed").map((operation) => operation.target);
+    return result(false, "Installation Failed", [
+      `Reason: ${reason}`,
+      `Failed Files: ${failedFiles.length ? failedFiles.join(", ") : "None copied before failure"}`,
+      `Suggested Fix: Review the installer diagnostics and correct the package manifest or selected project root.`,
+      ...(rollbackErrors.length ? [`Rollback Errors: ${rollbackErrors.join("; ")}`] : []),
+    ]);
+  }
 }
 
 async function chooseAndInstallDeveloperPackage(rootPath?: string) {
